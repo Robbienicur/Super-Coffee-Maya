@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigationStore, type Page } from '../store/navigationStore'
+import supabase from '../lib/supabaseClient'
 
 interface NavItem {
   id: Page
@@ -33,6 +34,31 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const visibleItems = navItems.filter((item) =>
     item.roles.includes(profile?.role ?? 'cashier')
   )
+
+  const [lowStockCount, setLowStockCount] = useState(0)
+
+  useEffect(() => {
+    const fetchLowStock = async () => {
+      const { data } = await supabase
+        .from('products')
+        .select('stock, min_stock')
+        .eq('is_active', true)
+
+      const count = (data ?? []).filter((p) => p.stock <= p.min_stock).length
+      setLowStockCount(count)
+    }
+
+    fetchLowStock()
+
+    const channel = supabase
+      .channel('layout-low-stock')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        fetchLowStock()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   return (
     <div className="flex h-screen bg-cream-dark">
@@ -69,8 +95,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               >
                 <span className="text-base flex-shrink-0">{item.icon}</span>
                 {expanded && (
-                  <span className={`text-sm whitespace-nowrap ${isActive ? 'font-medium' : ''}`}>
+                  <span className={`text-sm whitespace-nowrap flex items-center gap-1.5 ${isActive ? 'font-medium' : ''}`}>
                     {item.label}
+                    {item.id === 'inventory' && lowStockCount > 0 && (
+                      <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                        {lowStockCount}
+                      </span>
+                    )}
                   </span>
                 )}
               </button>
