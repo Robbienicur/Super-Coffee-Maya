@@ -107,7 +107,7 @@ export default function ProductTable({
                         onClick={() => onAdjustStock(product)}
                         className="text-xs px-2.5 py-1 rounded bg-coffee-100 text-coffee-700 hover:bg-coffee-200 transition-colors"
                       >
-                        Stock
+                        Ajustar Stock
                       </button>
                     )}
                     {isAdmin && product.is_active && (

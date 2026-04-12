@@ -258,7 +258,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
                 {scanning ? (
                   <span className="flex items-center gap-1.5">
                     <span className="inline-block w-2 h-2 rounded-full bg-white animate-pulse" />
-                    Escaneando...
+                    Esperando escaneo...
                   </span>
                 ) : (
                   'Escanear'
