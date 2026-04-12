@@ -5,12 +5,19 @@ import { logAction } from '../lib/auditLogger'
 import { useAuthStore } from '../store/authStore'
 import type { Sale } from '../types/database'
 
+const formatMXN = (amount: number) =>
+  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
+interface SaleWithCount extends Sale {
+  item_count: number
+}
+
 interface CancelSaleModalProps {
   onClose: () => void
 }
 
 export default function CancelSaleModal({ onClose }: CancelSaleModalProps) {
-  const [sales, setSales] = useState<Sale[]>([])
+  const [sales, setSales] = useState<SaleWithCount[]>([])
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
@@ -20,19 +27,25 @@ export default function CancelSaleModal({ onClose }: CancelSaleModalProps) {
     const fetchSales = async () => {
       if (!profile) return
 
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      const now = new Date()
+      const mexicoOffset = now.toLocaleString('en-US', { timeZone: 'America/Mexico_City' })
+      const mexicoMidnight = new Date(mexicoOffset)
+      mexicoMidnight.setHours(0, 0, 0, 0)
 
       const { data } = await supabase
         .from('sales')
-        .select('*')
+        .select('*, sale_items(count)')
         .eq('cashier_id', profile.id)
         .eq('status', 'completed')
-        .gte('created_at', today.toISOString())
+        .gte('created_at', mexicoMidnight.toISOString())
         .order('created_at', { ascending: false })
         .limit(10)
 
-      setSales(data ?? [])
+      const salesWithCount = (data ?? []).map((s) => ({
+        ...s,
+        item_count: (s.sale_items as unknown as { count: number }[])?.[0]?.count ?? 0,
+      }))
+      setSales(salesWithCount)
       setLoading(false)
     }
 
@@ -62,7 +75,7 @@ export default function CancelSaleModal({ onClose }: CancelSaleModalProps) {
       status: 'cancelled',
     })
 
-    setSales((prev) => prev.filter((s) => s.id !== sale.id))
+    setSales((prev: SaleWithCount[]) => prev.filter((s) => s.id !== sale.id))
     setConfirmId(null)
     setCancelling(null)
   }
@@ -96,10 +109,10 @@ export default function CancelSaleModal({ onClose }: CancelSaleModalProps) {
               >
                 <div>
                   <div className="text-sm font-medium text-coffee-900">
-                    ${sale.total.toFixed(2)}
+                    {formatMXN(sale.total)}
                   </div>
                   <div className="text-xs text-coffee-300">
-                    {formatTime(sale.created_at)}
+                    {formatTime(sale.created_at)} · {sale.item_count} {sale.item_count === 1 ? 'producto' : 'productos'}
                   </div>
                 </div>
 

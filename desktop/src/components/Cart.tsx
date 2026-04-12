@@ -1,6 +1,9 @@
 // desktop/src/components/Cart.tsx
 import { useCartStore } from '../store/cartStore'
 
+const formatMXN = (amount: number) =>
+  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
 interface CartProps {
   onCheckout: () => void
   onCancelPastSale: () => void
@@ -43,7 +46,7 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
                     {item.product.name}
                   </div>
                   <div className="text-xs text-coffee-300">
-                    ${item.product.price.toFixed(2)} c/u
+                    {formatMXN(item.product.price)} c/u
                   </div>
                 </div>
 
@@ -70,7 +73,7 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
                 </div>
 
                 <div className="w-20 text-right text-sm font-medium text-coffee-900">
-                  ${(item.product.price * item.quantity).toFixed(2)}
+                  {formatMXN(item.product.price * item.quantity)}
                 </div>
 
                 <button
@@ -88,7 +91,7 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
       <div className="border-t-2 border-coffee-900 pt-3 mt-3">
         <div className="flex justify-between items-center font-bold text-xl text-coffee-900 mb-3">
           <span>TOTAL</span>
-          <span>${total().toFixed(2)}</span>
+          <span>{formatMXN(total())}</span>
         </div>
 
         <div className="flex gap-2">

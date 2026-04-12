@@ -5,6 +5,9 @@ import supabase from '../lib/supabaseClient'
 import { logAction } from '../lib/auditLogger'
 import { useAuthStore } from '../store/authStore'
 
+const formatMXN = (amount: number) =>
+  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
 interface CheckoutModalProps {
   items: CartItem[]
   total: number
@@ -61,6 +64,7 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
       .insert(saleItems)
 
     if (itemsError) {
+      await supabase.from('sales').update({ status: 'cancelled' as const }).eq('id', sale.id)
       setError('Error al registrar los productos: ' + itemsError.message)
       setLoading(false)
       return
@@ -84,7 +88,7 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
 
         <div className="text-center mb-4">
           <div className="text-sm text-coffee-300">Total a cobrar</div>
-          <div className="text-3xl font-bold text-coffee-900">${total.toFixed(2)}</div>
+          <div className="text-3xl font-bold text-coffee-900">{formatMXN(total)}</div>
         </div>
 
         <div className="mb-4">
@@ -112,12 +116,12 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
               <>
                 <div className="text-sm text-green-700">Cambio</div>
                 <div className="text-2xl font-bold text-green-700">
-                  ${change.toFixed(2)}
+                  {formatMXN(change)}
                 </div>
               </>
             ) : (
               <div className="text-sm font-medium text-red-600">
-                Monto insuficiente — faltan ${Math.abs(change).toFixed(2)}
+                Monto insuficiente — faltan {formatMXN(Math.abs(change))}
               </div>
             )}
           </div>

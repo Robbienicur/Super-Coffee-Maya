@@ -8,6 +8,8 @@ interface UseBarcodeOptions {
 export function useBarcode({ onScan, enabled = true }: UseBarcodeOptions) {
   const bufferRef = useRef('')
   const lastKeyTimeRef = useRef(0)
+  const onScanRef = useRef(onScan)
+  onScanRef.current = onScan
 
   useEffect(() => {
     if (!enabled) return
@@ -17,18 +19,16 @@ export function useBarcode({ onScan, enabled = true }: UseBarcodeOptions) {
 
       if (e.key === 'Enter') {
         if (bufferRef.current.length > 4) {
-          onScan(bufferRef.current)
+          onScanRef.current(bufferRef.current)
         }
         bufferRef.current = ''
         lastKeyTimeRef.current = 0
         return
       }
 
-      // Ignorar teclas modificadoras
       if (e.key.length !== 1) return
 
       if (now - lastKeyTimeRef.current > 100 && bufferRef.current.length > 0) {
-        // Demasiado lento — resetear, es escritura humana
         bufferRef.current = ''
       }
 
@@ -38,5 +38,5 @@ export function useBarcode({ onScan, enabled = true }: UseBarcodeOptions) {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onScan, enabled])
+  }, [enabled])
 }

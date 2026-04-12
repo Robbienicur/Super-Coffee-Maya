@@ -2,6 +2,9 @@
 import { useState, useMemo } from 'react'
 import type { Product } from '../types/database'
 
+const formatMXN = (amount: number) =>
+  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
 interface ProductSearchProps {
   products: Product[]
   onAddToCart: (product: Product) => void
@@ -93,7 +96,7 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
                 )}
               </div>
               <div className="text-base font-bold text-coffee-900">
-                ${product.price.toFixed(2)}
+                {formatMXN(product.price)}
               </div>
               <div className="text-xs text-coffee-300 mt-0.5">
                 {outOfStock ? 'Sin stock' : `${product.stock} disponibles`}

@@ -9,6 +9,9 @@ import CheckoutModal from '../components/CheckoutModal'
 import CancelSaleModal from '../components/CancelSaleModal'
 import type { Product } from '../types/database'
 
+const formatMXN = (amount: number) =>
+  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+
 export default function POS() {
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
@@ -22,20 +25,20 @@ export default function POS() {
   const total = useCartStore((s) => s.total)
   const clear = useCartStore((s) => s.clear)
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
+  const fetchProducts = useCallback(async () => {
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .order('name')
 
-      setProducts(data ?? [])
-      setLoadingProducts(false)
-    }
-
-    fetchProducts()
+    setProducts(data ?? [])
+    setLoadingProducts(false)
   }, [])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   const handleScan = useCallback(
     (barcode: string) => {
@@ -62,7 +65,8 @@ export default function POS() {
   const handleCheckoutComplete = (changeGiven: number) => {
     clear()
     setShowCheckout(false)
-    setToast(`Venta completada — Cambio: $${changeGiven.toFixed(2)}`)
+    fetchProducts()
+    setToast(`Venta completada — Cambio: ${formatMXN(changeGiven)}`)
     setTimeout(() => setToast(null), 4000)
   }
 
