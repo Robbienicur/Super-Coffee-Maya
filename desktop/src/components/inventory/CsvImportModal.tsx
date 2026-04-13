@@ -265,10 +265,10 @@ export default function CsvImportModal({ onClose, onImported }: CsvImportModalPr
                     <th className="px-3 py-2 text-left font-medium">Fila</th>
                     <th className="px-3 py-2 text-left font-medium">Estado</th>
                     <th className="px-3 py-2 text-left font-medium">Nombre</th>
-                    <th className="px-3 py-2 text-left font-medium">Barcode</th>
+                    <th className="px-3 py-2 text-left font-medium">Código</th>
                     <th className="px-3 py-2 text-left font-medium">Categoría</th>
                     <th className="px-3 py-2 text-right font-medium">Precio</th>
-                    <th className="px-3 py-2 text-right font-medium">Stock</th>
+                    <th className="px-3 py-2 text-right font-medium">Existencias</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-coffee-100">

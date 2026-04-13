@@ -34,7 +34,7 @@ export default function StockAdjustModal({ product, onClose, onSaved }: StockAdj
     setError(null)
 
     if (!validStock) {
-      setError('El stock debe ser un número mayor o igual a 0.')
+      setError('Las existencias deben ser un número mayor o igual a 0.')
       return
     }
     if (!reason) {
@@ -74,7 +74,7 @@ export default function StockAdjustModal({ product, onClose, onSaved }: StockAdj
       .eq('id', product.id)
 
     if (updateError) {
-      setError('Error al actualizar stock: ' + updateError.message)
+      setError('Error al actualizar existencias:' + updateError.message)
       setLoading(false)
       return
     }
@@ -94,14 +94,14 @@ export default function StockAdjustModal({ product, onClose, onSaved }: StockAdj
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-cream rounded-xl p-6 w-full max-w-sm shadow-xl">
-        <h2 className="text-lg font-bold text-coffee-900 mb-1">Ajustar Stock</h2>
+        <h2 className="text-lg font-bold text-coffee-900 mb-1">Ajustar Existencias</h2>
         <p className="text-sm text-coffee-500 mb-5">{product.name}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Stock actual (solo lectura) */}
           <div>
             <label className="block text-xs font-medium text-coffee-700 mb-1">
-              Stock actual
+              Existencias actuales
             </label>
             <div className="px-3 py-2 bg-coffee-50 border border-coffee-200 rounded-lg text-coffee-900 text-sm">
               {product.stock}
@@ -111,7 +111,7 @@ export default function StockAdjustModal({ product, onClose, onSaved }: StockAdj
           {/* Nuevo stock */}
           <div>
             <label className="block text-xs font-medium text-coffee-700 mb-1">
-              Nuevo stock
+              Nuevas existencias
             </label>
             <div className="flex items-center gap-3">
               <input

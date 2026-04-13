@@ -99,7 +99,7 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
                 {formatMXN(product.price)}
               </div>
               <div className="text-xs text-coffee-300 mt-0.5">
-                {outOfStock ? 'Sin stock' : `${product.stock} disponibles`}
+                {outOfStock ? 'Sin existencias' : `${product.stock} disponibles`}
               </div>
             </button>
           )

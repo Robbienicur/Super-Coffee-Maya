@@ -82,8 +82,8 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
     const minStock = parseFloat(form.min_stock)
     if (isNaN(price) || price < 0) return 'El precio de venta debe ser mayor o igual a 0'
     if (isNaN(cost) || cost < 0) return 'El precio de costo debe ser mayor o igual a 0'
-    if (isNaN(stock) || stock < 0) return 'El stock debe ser mayor o igual a 0'
-    if (isNaN(minStock) || minStock < 0) return 'El stock mínimo debe ser mayor o igual a 0'
+    if (isNaN(stock) || stock < 0) return 'Las existencias deben ser mayor o igual a 0'
+    if (isNaN(minStock) || minStock < 0) return 'Las existencias mínimas deben ser mayor o igual a 0'
     if (!form.category) return 'Selecciona una categoría'
     return null
   }
@@ -309,10 +309,10 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
             </div>
           </div>
 
-          {/* Stock / Stock mínimo */}
+          {/* Existencias */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-coffee-700 mb-1">Stock <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-coffee-700 mb-1">Existencias <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 min="0"
@@ -324,7 +324,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
               />
             </div>
             <div>
-              <label className="block text-sm text-coffee-700 mb-1">Stock mínimo <span className="text-red-500">*</span></label>
+              <label className="block text-sm text-coffee-700 mb-1">Existencias mínimas <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 min="0"

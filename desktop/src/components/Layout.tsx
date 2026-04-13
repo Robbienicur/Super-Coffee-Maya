@@ -130,7 +130,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {pageLabels[currentPage]}
           </h1>
           <span className="text-xs text-coffee-300">
-            {profile?.name || profile?.email} • {profile?.role === 'admin' ? 'Admin' : 'Cajero'}
+            {profile?.name || profile?.email} • {profile?.role === 'admin' ? 'Administrador' : 'Cajero'}
           </span>
         </header>
         <div className="flex-1 overflow-auto p-5">

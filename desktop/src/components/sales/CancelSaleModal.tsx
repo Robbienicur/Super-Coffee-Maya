@@ -101,7 +101,7 @@ export default function CancelSaleModal({ sale, onClose, onCancelled }: CancelSa
 
         {/* Advertencia */}
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-          El stock de los productos se revertirá automáticamente.
+          Las existencias de los productos se revertirán automáticamente.
         </p>
 
         {error && (

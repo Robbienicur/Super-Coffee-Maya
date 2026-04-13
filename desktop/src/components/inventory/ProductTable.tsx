@@ -32,11 +32,11 @@ export default function ProductTable({
         <thead>
           <tr className="bg-coffee-900 text-coffee-100 text-left">
             <th className="px-4 py-3 font-semibold">Nombre</th>
-            <th className="px-4 py-3 font-semibold">Barcode</th>
+            <th className="px-4 py-3 font-semibold">Código</th>
             <th className="px-4 py-3 font-semibold">Categoría</th>
             <th className="px-4 py-3 font-semibold text-right">Precio</th>
             <th className="px-4 py-3 font-semibold text-right">Costo</th>
-            <th className="px-4 py-3 font-semibold text-right">Stock</th>
+            <th className="px-4 py-3 font-semibold text-right">Existencias</th>
             <th className="px-4 py-3 font-semibold text-right">Mín.</th>
             <th className="px-4 py-3 font-semibold">Estado</th>
             <th className="px-4 py-3 font-semibold">Acciones</th>
@@ -107,7 +107,7 @@ export default function ProductTable({
                         onClick={() => onAdjustStock(product)}
                         className="text-xs px-2.5 py-1 rounded bg-coffee-100 text-coffee-700 hover:bg-coffee-200 transition-colors"
                       >
-                        Ajustar Stock
+                        Ajustar Existencias
                       </button>
                     )}
                     {isAdmin && product.is_active && (

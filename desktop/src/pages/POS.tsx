@@ -45,7 +45,7 @@ export default function POS() {
       const product = products.find((p) => p.barcode === barcode)
       if (product) {
         if (product.stock <= 0) {
-          setToast(`"${product.name}" sin stock`)
+          setToast(`"${product.name}" sin existencias`)
           setTimeout(() => setToast(null), 3000)
           return
         }

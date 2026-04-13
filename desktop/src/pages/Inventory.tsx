@@ -115,7 +115,7 @@ export default function Inventory() {
   const handleStockSaved = useCallback(() => {
     setStockProduct(null)
     fetchProducts()
-    showToast('Stock actualizado correctamente')
+    showToast('Existencias actualizadas correctamente')
   }, [fetchProducts, showToast])
 
   const handleProductDeleted = useCallback(() => {
@@ -140,7 +140,7 @@ export default function Inventory() {
 
   // Summary label
   const summaryParts: string[] = []
-  if (showLowStock) summaryParts.push('con stock bajo')
+  if (showLowStock) summaryParts.push('con existencias bajas')
   if (categoryFilter) summaryParts.push(`en ${categoryFilter}`)
   const suffix = summaryParts.length > 0 ? ` ${summaryParts.join(' ')}` : ''
   const summaryLabel = `${filteredProducts.length} producto${filteredProducts.length !== 1 ? 's' : ''}${suffix}`
@@ -176,7 +176,7 @@ export default function Inventory() {
               : 'bg-coffee-100 text-coffee-800 hover:bg-coffee-200'
           }`}
         >
-          Stock bajo {lowStockCount > 0 && `(${lowStockCount})`}
+          Existencias bajas {lowStockCount > 0 && `(${lowStockCount})`}
         </button>
 
         <button
