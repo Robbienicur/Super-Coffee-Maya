@@ -20,7 +20,7 @@ export default function Inventory() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [showLowStock, setShowLowStock] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; phase: 'entering' | 'visible' | 'exiting' } | null>(null)
 
   // Modal state: undefined = closed, null = add new, Product = edit
   const [formProduct, setFormProduct] = useState<Product | null | undefined>(undefined)
@@ -59,8 +59,12 @@ export default function Inventory() {
   }, [fetchProducts])
 
   const showToast = useCallback((message: string) => {
-    setToast(message)
-    setTimeout(() => setToast(null), 3500)
+    setToast({ message, phase: 'entering' })
+    requestAnimationFrame(() => setToast((t) => t ? { ...t, phase: 'visible' } : null))
+    setTimeout(() => {
+      setToast((t) => t ? { ...t, phase: 'exiting' } : null)
+      setTimeout(() => setToast(null), 200)
+    }, 3500)
   }, [])
 
   // Barcode scan in inventory opens edit modal for that product
@@ -132,8 +136,17 @@ export default function Inventory() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-coffee-300">Cargando inventario...</p>
+      <div className="flex flex-col h-full gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex-1 min-w-[200px] h-10 bg-coffee-100 rounded-lg animate-pulse" />
+          <div className="h-10 w-44 bg-coffee-100 rounded-lg animate-pulse" />
+          <div className="h-10 w-36 bg-coffee-100 rounded-lg animate-pulse" />
+        </div>
+        <div className="flex-1 space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-12 bg-coffee-100 rounded-lg animate-pulse" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -244,8 +257,10 @@ export default function Inventory() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg shadow-lg text-sm font-medium z-50 bg-green-600 text-white">
-          {toast}
+        <div className={`fixed bottom-6 left-1/2 px-5 py-3 rounded-lg shadow-2xl text-sm font-medium z-50 bg-success text-white ${
+          toast.phase === 'exiting' ? 'toast-exit' : 'toast-enter'
+        }`}>
+          {toast.message}
         </div>
       )}
     </div>

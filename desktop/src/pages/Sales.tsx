@@ -23,8 +23,7 @@ const DEFAULT_FILTERS: SalesFilterValues = {
   status: '',
 }
 
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../utils/formatMXN'
 
 export default function Sales() {
   const profile = useAuthStore((s) => s.profile)
@@ -36,11 +35,15 @@ export default function Sales() {
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null)
   const [cancelSale, setCancelSale] = useState<SaleWithCashier | null>(null)
   const [refundSale, setRefundSale] = useState<SaleWithCashier | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; phase: 'entering' | 'visible' | 'exiting' } | null>(null)
 
   const showToast = useCallback((message: string) => {
-    setToast(message)
-    setTimeout(() => setToast(null), 3500)
+    setToast({ message, phase: 'entering' })
+    requestAnimationFrame(() => setToast((t) => t ? { ...t, phase: 'visible' } : null))
+    setTimeout(() => {
+      setToast((t) => t ? { ...t, phase: 'exiting' } : null)
+      setTimeout(() => setToast(null), 200)
+    }, 3500)
   }, [])
 
   const fetchSales = useCallback(async () => {
@@ -118,8 +121,17 @@ export default function Sales() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-coffee-300">Cargando ventas...</p>
+      <div className="flex flex-col h-full gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-10 w-36 bg-coffee-100 rounded-lg animate-pulse" />
+          ))}
+        </div>
+        <div className="flex-1 space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-14 bg-coffee-100 rounded-lg animate-pulse" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -167,8 +179,10 @@ export default function Sales() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg shadow-lg text-sm font-medium z-50 bg-green-600 text-white">
-          {toast}
+        <div className={`fixed bottom-6 left-1/2 px-5 py-3 rounded-lg shadow-2xl text-sm font-medium z-50 bg-success text-white ${
+          toast.phase === 'exiting' ? 'toast-exit' : 'toast-enter'
+        }`}>
+          {toast.message}
         </div>
       )}
     </div>

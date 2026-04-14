@@ -227,8 +227,8 @@ export default function CsvImportModal({ onClose, onImported }: CsvImportModalPr
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-cream rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fade-in_200ms_ease-out]">
+      <div className="bg-cream rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-[scale-in_200ms_ease-out]">
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-coffee-200 shrink-0">
           <h2 className="text-lg font-bold text-coffee-900">Importar productos desde CSV</h2>

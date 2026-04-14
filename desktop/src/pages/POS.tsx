@@ -8,17 +8,24 @@ import Cart from '../components/Cart'
 import CheckoutModal from '../components/CheckoutModal'
 import CancelSaleModal from '../components/CancelSaleModal'
 import type { Product } from '../types/database'
-
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../utils/formatMXN'
 
 export default function POS() {
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [showCheckout, setShowCheckout] = useState(false)
   const [showCancelSale, setShowCancelSale] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; phase: 'entering' | 'visible' | 'exiting' } | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type, phase: 'entering' })
+    requestAnimationFrame(() => setToast((t) => t ? { ...t, phase: 'visible' } : null))
+    setTimeout(() => {
+      setToast((t) => t ? { ...t, phase: 'exiting' } : null)
+      setTimeout(() => setToast(null), 200)
+    }, 3500)
+  }, [])
 
   const items = useCartStore((s) => s.items)
   const addItem = useCartStore((s) => s.addItem)
@@ -45,18 +52,16 @@ export default function POS() {
       const product = products.find((p) => p.barcode === barcode)
       if (product) {
         if (product.stock <= 0) {
-          setToast(`"${product.name}" sin existencias`)
-          setTimeout(() => setToast(null), 3000)
+          showToast(`"${product.name}" sin existencias`, 'error')
           return
         }
         addItem(product)
       } else {
-        setToast(`Código "${barcode}" no encontrado — busca por nombre`)
-        setTimeout(() => setToast(null), 3000)
+        showToast(`Código "${barcode}" no encontrado — busca por nombre`, 'error')
         searchInputRef.current?.focus()
       }
     },
-    [products, addItem]
+    [products, addItem, showToast]
   )
 
   const modalOpen = showCheckout || showCancelSale
@@ -66,14 +71,28 @@ export default function POS() {
     clear()
     setShowCheckout(false)
     fetchProducts()
-    setToast(`Venta completada — Cambio: ${formatMXN(changeGiven)}`)
-    setTimeout(() => setToast(null), 4000)
+    showToast(`Venta completada — Cambio: ${formatMXN(changeGiven)}`)
   }
 
   if (loadingProducts) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-coffee-300">Cargando productos...</p>
+      <div className="flex gap-4 h-full">
+        <div className="flex-[3]">
+          <div className="h-10 bg-coffee-100 rounded-lg mb-3 animate-pulse" />
+          <div className="flex gap-2 mb-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-8 w-20 bg-coffee-100 rounded-lg animate-pulse" />
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-24 bg-coffee-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+        <div className="flex-[2]">
+          <div className="h-full bg-coffee-100 rounded-xl animate-pulse" />
+        </div>
       </div>
     )
   }
@@ -112,12 +131,10 @@ export default function POS() {
       )}
 
       {toast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-lg shadow-lg text-sm font-medium z-50 ${
-          toast.startsWith('Venta completada')
-            ? 'bg-green-600 text-white'
-            : 'bg-red-600 text-white'
-        }`}>
-          {toast}
+        <div className={`fixed bottom-6 left-1/2 px-5 py-3 rounded-lg shadow-2xl text-sm font-medium z-50 text-white ${
+          toast.type === 'success' ? 'bg-success' : 'bg-danger'
+        } ${toast.phase === 'exiting' ? 'toast-exit' : 'toast-enter'}`}>
+          {toast.message}
         </div>
       )}
     </div>

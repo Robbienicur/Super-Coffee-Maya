@@ -215,8 +215,8 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-cream rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fade-in_200ms_ease-out]">
+      <div className="bg-cream rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto animate-[scale-in_200ms_ease-out]">
         <h2 className="text-lg font-bold text-coffee-900 mb-5">
           {isEdit ? 'Editar Producto' : 'Agregar Producto'}
         </h2>

@@ -59,8 +59,8 @@ export default function RefundSaleModal({ sale, onClose, onRefunded }: RefundSal
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-cream rounded-xl p-6 w-full max-w-sm shadow-xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fade-in_200ms_ease-out]">
+      <div className="bg-cream rounded-xl p-6 w-full max-w-sm shadow-xl animate-[scale-in_200ms_ease-out]">
         <h2 className="text-lg font-bold text-coffee-900 mb-4">Reembolsar Venta</h2>
 
         {/* Resumen de venta */}
