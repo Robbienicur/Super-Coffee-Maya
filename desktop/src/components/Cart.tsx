@@ -1,8 +1,7 @@
 // desktop/src/components/Cart.tsx
+import { ShoppingCart, X, Check } from 'lucide-react'
 import { useCartStore } from '../store/cartStore'
-
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../utils/formatMXN'
 
 interface CartProps {
   onCheckout: () => void
@@ -24,9 +23,9 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl border-2 border-coffee-200 p-4">
+    <div className="flex flex-col h-full bg-white rounded-xl border border-coffee-100 shadow-sm p-4">
       <div className="font-bold text-coffee-900 mb-3 text-base">
-        🛒 Carrito ({items.reduce((sum, i) => sum + i.quantity, 0)})
+        <ShoppingCart size={18} className="inline -mt-0.5" /> Carrito ({items.reduce((sum, i) => sum + i.quantity, 0)})
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -35,11 +34,11 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
             Escanea o busca un producto
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="divide-y divide-coffee-100">
             {items.map((item) => (
               <div
                 key={item.product.id}
-                className="flex items-center gap-2 py-2 px-1 border-b border-coffee-100"
+                className="flex items-center gap-2 py-2 px-1"
               >
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-coffee-900 truncate">
@@ -80,7 +79,7 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
                   onClick={() => removeItem(item.product.id)}
                   className="text-red-400 hover:text-red-600 text-sm ml-1"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               </div>
             ))}
@@ -98,16 +97,16 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
           <button
             onClick={handleClear}
             disabled={items.length === 0}
-            className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 py-2.5 rounded-lg bg-danger text-white font-semibold text-sm hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.97]"
           >
             Cancelar
           </button>
           <button
             onClick={onCheckout}
             disabled={items.length === 0}
-            className="flex-1 py-2.5 rounded-lg bg-coffee-900 text-white font-semibold text-sm hover:bg-coffee-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 py-3 rounded-lg bg-coffee-900 text-white font-semibold text-sm hover:bg-coffee-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.97] flex items-center justify-center gap-1.5"
           >
-            Cobrar
+            <Check size={16} /> Cobrar
           </button>
         </div>
 

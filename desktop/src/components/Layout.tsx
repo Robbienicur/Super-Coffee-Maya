@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { ShoppingCart, Package, BarChart3, ClipboardList, LogOut } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigationStore, type Page } from '../store/navigationStore'
 import supabase from '../lib/supabaseClient'
@@ -6,15 +8,15 @@ import supabase from '../lib/supabaseClient'
 interface NavItem {
   id: Page
   label: string
-  icon: string
+  icon: LucideIcon
   roles: Array<'admin' | 'cashier'>
 }
 
 const navItems: NavItem[] = [
-  { id: 'pos', label: 'Punto de Venta', icon: '🛒', roles: ['admin', 'cashier'] },
-  { id: 'inventory', label: 'Inventario', icon: '📦', roles: ['admin', 'cashier'] },
-  { id: 'sales', label: 'Ventas', icon: '📊', roles: ['admin', 'cashier'] },
-  { id: 'audit', label: 'Auditoría', icon: '📋', roles: ['admin'] },
+  { id: 'pos', label: 'Punto de Venta', icon: ShoppingCart, roles: ['admin', 'cashier'] },
+  { id: 'inventory', label: 'Inventario', icon: Package, roles: ['admin', 'cashier'] },
+  { id: 'sales', label: 'Ventas', icon: BarChart3, roles: ['admin', 'cashier'] },
+  { id: 'audit', label: 'Auditoría', icon: ClipboardList, roles: ['admin'] },
 ]
 
 const pageLabels: Record<Page, string> = {
@@ -93,7 +95,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     : 'opacity-60 hover:opacity-100 hover:bg-coffee-800/50'
                 }`}
               >
-                <span className="text-base flex-shrink-0">{item.icon}</span>
+                <item.icon size={18} className="flex-shrink-0" />
                 {expanded && (
                   <span className={`text-sm whitespace-nowrap flex items-center gap-1.5 ${isActive ? 'font-medium' : ''}`}>
                     {item.label}
@@ -116,7 +118,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               expanded ? 'px-3' : 'justify-center'
             }`}
           >
-            <span className="text-sm flex-shrink-0">🚪</span>
+            <LogOut size={16} className="flex-shrink-0" />
             {expanded && (
               <span className="text-xs whitespace-nowrap">Cerrar Sesión</span>
             )}
