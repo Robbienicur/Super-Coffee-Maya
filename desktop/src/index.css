@@ -1,6 +1,11 @@
 @import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
 
 @theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --color-coffee-900: #3E2723;
   --color-coffee-800: #4E342E;
   --color-coffee-700: #5D4037;
@@ -10,9 +15,60 @@
   --color-coffee-100: #EFEBE9;
   --color-cream: #FFF8E1;
   --color-cream-dark: #FAFAF6;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
 }
 
 body {
   margin: 0;
   overflow: hidden;
+  font-family: var(--font-sans);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(1rem);
+  }
+}
+
+.toast-enter {
+  animation: toast-in 200ms ease-out forwards;
+}
+
+.toast-exit {
+  animation: toast-out 200ms ease-in forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
