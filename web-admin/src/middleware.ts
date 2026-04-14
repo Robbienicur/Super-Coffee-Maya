@@ -3,8 +3,6 @@ import { createMiddlewareClient } from '@/lib/supabase/middleware'
 
 const INACTIVITY_LIMIT_MS = 8 * 60 * 60 * 1000 // 8 horas
 
-const PUBLIC_ROUTES = ['/login', '/no-autorizado']
-
 export async function middleware(request: NextRequest) {
   const { supabase, response } = createMiddlewareClient(request)
   const { pathname } = request.nextUrl
@@ -13,10 +11,18 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Rutas públicas: redirigir si ya autenticado
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  // /login: redirigir a dashboard si ya autenticado
+  if (pathname === '/login') {
     if (user) {
       return NextResponse.redirect(new URL('/', request.url))
+    }
+    return response()
+  }
+
+  // /no-autorizado: permitir acceso a usuarios autenticados (no-admins)
+  if (pathname === '/no-autorizado') {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url))
     }
     return response()
   }
