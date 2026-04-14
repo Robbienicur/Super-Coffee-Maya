@@ -4,9 +4,7 @@ import type { CartItem } from '../store/cartStore'
 import supabase from '../lib/supabaseClient'
 import { logAction } from '../lib/auditLogger'
 import { useAuthStore } from '../store/authStore'
-
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../utils/formatMXN'
 
 interface CheckoutModalProps {
   items: CartItem[]
@@ -82,8 +80,8 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-cream rounded-xl p-6 w-full max-w-sm shadow-xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fade-in_200ms_ease-out]">
+      <div className="bg-cream rounded-xl p-6 w-full max-w-sm shadow-xl animate-[scale-in_200ms_ease-out]">
         <h2 className="text-lg font-bold text-coffee-900 mb-4">Cobrar Venta</h2>
 
         <div className="text-center mb-4">
@@ -146,7 +144,15 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
             disabled={!canConfirm}
             className="flex-1 py-2.5 rounded-lg bg-coffee-900 text-white font-semibold text-sm hover:bg-coffee-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Procesando...' : 'Confirmar Venta'}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Procesando...
+              </span>
+            ) : 'Confirmar Venta'}
           </button>
         </div>
       </div>

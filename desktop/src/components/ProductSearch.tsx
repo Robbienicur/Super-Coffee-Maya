@@ -1,9 +1,7 @@
 // desktop/src/components/ProductSearch.tsx
 import { useState, useMemo } from 'react'
 import type { Product } from '../types/database'
-
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../utils/formatMXN'
 
 interface ProductSearchProps {
   products: Product[]
@@ -79,10 +77,10 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
               key={product.id}
               disabled={outOfStock}
               onClick={() => onAddToCart(product)}
-              className={`text-left p-3 rounded-lg border transition-colors ${
+              className={`text-left p-3 rounded-xl border transition-all duration-150 ${
                 outOfStock
-                  ? 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed'
-                  : 'bg-white border-coffee-200 hover:border-coffee-500 hover:shadow-sm cursor-pointer'
+                  ? 'bg-gray-50 border-gray-200 opacity-40 cursor-not-allowed'
+                  : 'bg-white border-coffee-100 shadow-sm hover:shadow-md hover:border-coffee-300 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer'
               }`}
             >
               <div className="flex items-start justify-between mb-1">
@@ -90,7 +88,7 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
                   {product.name}
                 </span>
                 {lowStock && (
-                  <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0">
+                  <span className="text-[10px] bg-warning text-white px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0">
                     Bajo
                   </span>
                 )}
