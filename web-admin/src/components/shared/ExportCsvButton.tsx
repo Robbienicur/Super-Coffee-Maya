@@ -67,9 +67,9 @@ export default function ExportCsvButton({
       }
     }
 
-    const { data } = await query.order(orderBy.column, {
-      ascending: orderBy.ascending,
-    })
+    const { data } = await query
+      .order(orderBy.column, { ascending: orderBy.ascending })
+      .limit(10000)
 
     if (data && data.length > 0) {
       const header = columns.map((c) => escapeCsv(c.label)).join(',')

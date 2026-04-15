@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -26,8 +26,11 @@ export function ChangeRoleModal({ user, open, onClose, onUpdated }: ChangeRoleMo
   const [newRole, setNewRole] = useState<'admin' | 'cashier'>('cashier')
   const [loading, setLoading] = useState(false)
 
-  // Initialize newRole to opposite of current when modal opens
-  const targetRole = user?.role === 'admin' ? 'cashier' : 'admin'
+  useEffect(() => {
+    if (user && open) {
+      setNewRole(user.role === 'admin' ? 'cashier' : 'admin')
+    }
+  }, [user, open])
 
   async function handleSubmit() {
     if (!user) return
@@ -46,7 +49,7 @@ export function ChangeRoleModal({ user, open, onClose, onUpdated }: ChangeRoleMo
   if (!user) return null
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose() } else { setNewRole(targetRole) } }}>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Cambiar Rol</DialogTitle>

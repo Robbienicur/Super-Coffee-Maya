@@ -133,12 +133,13 @@ export default function ProductFormModal({
         return
       }
 
-      if (oldValues.price !== undefined) {
-        await insertAuditLog('PRICE_CHANGED', 'product', product.id, oldValues, newValues)
-      } else if (oldValues.stock !== undefined) {
-        await insertAuditLog('STOCK_ADJUSTED', 'product', product.id, oldValues, newValues)
-      } else if (Object.keys(oldValues).length > 0) {
-        await insertAuditLog('PRODUCT_UPDATED', 'product', product.id, oldValues, newValues)
+      if (Object.keys(oldValues).length > 0) {
+        const action = oldValues.price !== undefined
+          ? 'PRICE_CHANGED'
+          : oldValues.stock !== undefined
+            ? 'STOCK_ADJUSTED'
+            : 'PRODUCT_UPDATED'
+        await insertAuditLog(action, 'product', product.id, oldValues, newValues)
       }
     } else {
       const { data: newProduct, error: insertError } = await supabase
@@ -166,7 +167,7 @@ export default function ProductFormModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
         </DialogHeader>

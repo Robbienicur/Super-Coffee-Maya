@@ -51,6 +51,7 @@ export default function SaleDetailModal({
   const [items, setItems] = useState<SaleItemWithProduct[]>([])
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     if (!sale || !open) return
@@ -71,6 +72,7 @@ export default function SaleDetailModal({
   async function handleChangeStatus(newStatus: 'cancelled' | 'refunded') {
     if (!sale) return
     setActionLoading(true)
+    setActionError('')
     const supabase = createClient()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,21 +81,24 @@ export default function SaleDetailModal({
       .update({ status: newStatus })
       .eq('id', sale.id)
 
-    if (!error) {
-      const actionName = newStatus === 'cancelled' ? 'SALE_CANCELLED' : 'SALE_REFUNDED'
-      await insertAuditLog(actionName, 'sale', sale.id, { status: sale.status }, { status: newStatus })
-      onUpdated()
-      onClose()
+    if (error) {
+      setActionError(error.message)
+      setActionLoading(false)
+      return
     }
 
+    const actionName = newStatus === 'cancelled' ? 'SALE_CANCELLED' : 'SALE_REFUNDED'
+    await insertAuditLog(actionName, 'sale', sale.id, { status: sale.status }, { status: newStatus })
     setActionLoading(false)
+    onUpdated()
+    onClose()
   }
 
   if (!sale) return null
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Detalle de Venta</DialogTitle>
         </DialogHeader>
@@ -160,6 +165,10 @@ export default function SaleDetailModal({
               ))}
             </TableBody>
           </Table>
+        )}
+
+        {actionError && (
+          <p className="text-danger text-sm">{actionError}</p>
         )}
 
         {sale.status === 'completed' && (
