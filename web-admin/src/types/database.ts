@@ -71,14 +71,19 @@ export interface StockAdjustment {
 }
 
 export interface Database {
+  __InternalSupabase: {
+    PostgrestVersion: '12'
+  }
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Omit<Profile, 'created_at' | 'updated_at'>; Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>> }
-      products: { Row: Product; Insert: Omit<Product, 'id' | 'created_at' | 'updated_at'>; Update: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>> }
-      sales: { Row: Sale; Insert: Omit<Sale, 'id' | 'created_at'>; Update: Partial<Pick<Sale, 'status' | 'notes'>> }
-      sale_items: { Row: SaleItem; Insert: Omit<SaleItem, 'id' | 'created_at'>; Update: never }
-      audit_logs: { Row: AuditLog; Insert: Omit<AuditLog, 'id' | 'created_at' | 'ip_address'> & Partial<Pick<AuditLog, 'ip_address'>>; Update: never }
-      stock_adjustments: { Row: StockAdjustment; Insert: Omit<StockAdjustment, 'id' | 'created_at'>; Update: never }
+      profiles: { Row: Profile; Insert: Omit<Profile, 'created_at' | 'updated_at'>; Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>; Relationships: [] }
+      products: { Row: Product; Insert: Omit<Product, 'id' | 'created_at' | 'updated_at'>; Update: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>>; Relationships: [] }
+      sales: { Row: Sale; Insert: Omit<Sale, 'id' | 'created_at'>; Update: Partial<Pick<Sale, 'status' | 'notes'>>; Relationships: [] }
+      sale_items: { Row: SaleItem; Insert: Omit<SaleItem, 'id' | 'created_at'>; Update: never; Relationships: [] }
+      audit_logs: { Row: AuditLog; Insert: Omit<AuditLog, 'id' | 'created_at' | 'ip_address'> & Partial<Pick<AuditLog, 'ip_address'>>; Update: never; Relationships: [] }
+      stock_adjustments: { Row: StockAdjustment; Insert: Omit<StockAdjustment, 'id' | 'created_at'>; Update: never; Relationships: [] }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
   }
 }
