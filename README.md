@@ -46,10 +46,23 @@ npm run dev
 
 ```bash
 cd desktop
-npm run build
+pnpm build:installer
 ```
 
-El instalador se genera en `desktop/release/`.
+El instalador NSIS para Windows x64 queda en `desktop/release/` como
+`Coffe-Maya-Setup-1.0.0.exe`.
+
+**Notas:**
+
+- El build de `.exe` funciona nativamente en Windows. Desde macOS o Linux
+  electron-builder intentará cross-build y puede fallar según el entorno;
+  lo recomendable es buildear en Windows o en un runner de CI (p. ej.
+  GitHub Actions `runs-on: windows-latest`).
+- El instalador no está firmado digitalmente. Al abrirlo la primera vez
+  Windows SmartScreen mostrará un aviso; hacer clic en "Más información"
+  y luego "Ejecutar de todos modos".
+- El instalador permite elegir directorio de instalación y crea accesos
+  directos en el escritorio y el menú de inicio.
 
 ### 6. Deploy Web Admin
 
