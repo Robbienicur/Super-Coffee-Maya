@@ -53,9 +53,28 @@ El instalador se genera en `desktop/release/`.
 
 ### 6. Deploy Web Admin
 
+El `web-admin/vercel.json` ya tiene la configuración lista. El deploy se
+automatiza conectando el repo a Vercel una sola vez:
+
+1. Entra a [vercel.com/new](https://vercel.com/new) e importa el repo.
+2. **Root Directory:** `web-admin`.
+3. **Framework:** Next.js (auto-detectado).
+4. **Environment Variables** (Production y Preview):
+   - `NEXT_PUBLIC_SUPABASE_URL` — URL de Supabase producción
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — anon key
+   - `SUPABASE_SERVICE_ROLE_KEY` — service role (marcar como sensible, no exponer al cliente)
+5. Deploy.
+
+A partir de ahí:
+
+- `git push origin main` → deploy a producción
+- Apertura de PR → preview URL comentada automáticamente en el PR
+
+Para un deploy puntual desde la terminal (después del setup):
+
 ```bash
 cd web-admin
-vercel deploy --prod
+vercel --prod
 ```
 
 ## Entorno de testing local
