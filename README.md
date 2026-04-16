@@ -122,11 +122,33 @@ local estándar de Supabase CLI, que expone:
 - Studio: http://127.0.0.1:54323
 - Postgres: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
+### Correr los tests E2E
+
+Con Supabase local arriba y `.env.test` copiado en cada app:
+
+```bash
+# Web admin (Playwright contra Next.js dev server)
+cd web-admin
+pnpm test:e2e            # headless
+pnpm test:e2e:ui         # modo interactivo
+
+# Desktop (Playwright lanzando el bundle de Electron)
+cd desktop
+pnpm test:e2e            # buildea y corre todos los specs
+pnpm test:e2e:only       # salta el build (si ya hay uno vigente)
+```
+
+Cada run del web-admin ejecuta `pnpm db:reset` automáticamente en el global
+setup para garantizar estado determinista. En desktop cada test usa un
+`userDataDir` temporal distinto para no arrastrar sesión previa.
+
 ### Troubleshooting
 
 - **"Docker daemon not running"**: arrancar Docker Desktop antes de `db:start`.
 - **Puerto 54321 ocupado**: otro proyecto Supabase corriendo. `supabase stop --project-id <otro>` o ajustar `supabase/config.toml`.
 - **`db:reset` tarda mucho**: re-aplica todas las migrations (~15s es normal).
+- **Playwright "browsers not installed"**: correr `pnpm exec playwright install chromium` una vez por máquina.
+- **Desktop E2E "Cannot find out/main/index.js"**: el build no se generó. Ejecutar `pnpm --filter coffe-maya-pos build` antes.
 
 ## Licencia
 
