@@ -1,20 +1,21 @@
 {
-  "name": "desktop",
+  "name": "coffe-maya-pos",
   "version": "1.0.0",
-  "description": "",
+  "description": "Coffe Maya POS — app de escritorio para punto de venta",
   "type": "module",
   "main": "./out/main/index.js",
+  "author": "Robbienicur",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "build:installer": "electron-vite build && electron-builder --win --config electron-builder.yml",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "packageManager": "pnpm@10.33.0",
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
