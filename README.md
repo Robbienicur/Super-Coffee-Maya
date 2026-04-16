@@ -58,6 +58,44 @@ cd web-admin
 vercel deploy --prod
 ```
 
+## Entorno de testing local
+
+Para correr los tests E2E se necesita un Supabase local aislado del proyecto
+de producción. Requisitos:
+
+- Docker Desktop corriendo
+- Supabase CLI instalado (`brew install supabase/tap/supabase` o equivalente)
+
+### Arranque
+
+```bash
+pnpm db:start       # levanta Postgres + Auth + Studio en Docker
+pnpm db:reset       # aplica migrations, seeds y crea usuarios E2E
+pnpm db:stop        # apaga los contenedores cuando termines
+```
+
+Después de `db:reset`, la base local contiene:
+
+- Productos deterministas con barcodes `E2E00001` a `E2E00005` (stock 100 cada uno)
+- Usuario admin: `admin.e2e@coffemaya.test` / `e2e-admin-pass`
+- Usuario cajera: `cajera.e2e@coffemaya.test` / `e2e-cajera-pass`
+
+### Variables de entorno
+
+Copia `.env.test.example` a `.env.test` en cada app que vaya a correr E2E
+(desktop y web-admin). Las URLs y keys por defecto coinciden con el proyecto
+local estándar de Supabase CLI, que expone:
+
+- API: http://127.0.0.1:54321
+- Studio: http://127.0.0.1:54323
+- Postgres: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+### Troubleshooting
+
+- **"Docker daemon not running"**: arrancar Docker Desktop antes de `db:start`.
+- **Puerto 54321 ocupado**: otro proyecto Supabase corriendo. `supabase stop --project-id <otro>` o ajustar `supabase/config.toml`.
+- **`db:reset` tarda mucho**: re-aplica todas las migrations (~15s es normal).
+
 ## Licencia
 
 Proyecto privado.
