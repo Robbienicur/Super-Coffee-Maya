@@ -44,4 +44,30 @@ test.describe('Ventas', () => {
     await expect(page.getByText(/método:/i)).toBeVisible()
     await expect(page.getByText(/total:/i)).toBeVisible()
   })
+
+  test('cancelar venta genera entrada en audit log', async ({ page }) => {
+    // Abrir detalle de una venta completada
+    const viewButton = page.locator('button').filter({ has: page.locator('svg') }).first()
+    if (await viewButton.count() === 0) {
+      test.skip()
+    }
+
+    await viewButton.click()
+    await expect(page.getByText(/detalle de venta/i)).toBeVisible({ timeout: 5_000 })
+
+    const cancelBtn = page.getByRole('button', { name: /cancelar venta/i }).first()
+    if (await cancelBtn.count() === 0) {
+      test.skip()
+    }
+
+    await cancelBtn.click()
+    await page.waitForTimeout(2000)
+
+    // Verificar que la venta cambió de estado
+    await expect(page.getByText(/cancelada/i).first()).toBeVisible({ timeout: 5_000 })
+
+    // Ir a auditoría y verificar la entrada
+    await page.goto('/auditoria')
+    await expect(page.getByText(/cancelación|sale_cancelled/i).first()).toBeVisible({ timeout: 10_000 })
+  })
 })
