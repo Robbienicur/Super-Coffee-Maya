@@ -66,4 +66,38 @@ test.describe('Usuarios', () => {
       await page.waitForTimeout(1000)
     }
   })
+
+  test('desactivar usuario y verificar estado inactivo', async ({ page }) => {
+    // Buscar botón de desactivar en la fila de cajera E2E
+    const cashierRow = page.locator('tr:has-text("cajera.e2e@coffemaya.test")')
+    const deactivateBtn = cashierRow.locator('button[title="Desactivar"]').first()
+
+    if (await deactivateBtn.count() === 0) {
+      test.skip()
+    }
+
+    await deactivateBtn.click()
+
+    // Esperar modal de confirmación
+    await expect(page.getByText(/desactivar usuario/i).first()).toBeVisible({ timeout: 5_000 })
+
+    // Confirmar desactivación
+    const confirmBtn = page.getByRole('button', { name: /desactivar/i }).last()
+    await confirmBtn.click()
+
+    await page.waitForTimeout(2000)
+
+    // Verificar que el estado cambió a inactivo
+    await expect(cashierRow.getByText(/inactivo/i).first()).toBeVisible({ timeout: 5_000 })
+
+    // Revertir: reactivar usuario
+    const activateBtn = cashierRow.locator('button[title="Activar"]').first()
+    if (await activateBtn.count() > 0) {
+      await activateBtn.click()
+      await page.waitForTimeout(500)
+      const reactivateBtn = page.getByRole('button', { name: /activar/i }).last()
+      await reactivateBtn.click()
+      await page.waitForTimeout(1000)
+    }
+  })
 })
