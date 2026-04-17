@@ -13,6 +13,7 @@ node_modules/
 dist/
 out/
 build/
+!desktop/build/icon.ico
 .next/
 .vercel
 
