@@ -44,4 +44,19 @@ test.describe('Auditoría', () => {
       await expect(otherActions).toHaveCount(0)
     }
   })
+
+  test('expandir fila de audit log muestra diff con valores anterior y nuevo', async ({ page }) => {
+    // Buscar una fila con cursor-pointer (tiene diff)
+    const expandableRow = page.locator('tr.cursor-pointer').first()
+
+    if (await expandableRow.count() === 0) {
+      test.skip()
+    }
+
+    await expandableRow.click()
+
+    // Verificar que se muestra la vista de diff
+    await expect(page.getByText(/anterior/i).first()).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText(/nuevo/i).first()).toBeVisible({ timeout: 5_000 })
+  })
 })
