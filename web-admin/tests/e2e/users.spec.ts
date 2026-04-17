@@ -27,4 +27,43 @@ test.describe('Usuarios', () => {
 
     await expect(page.getByText(NEW_USER_EMAIL)).toBeVisible({ timeout: 10_000 })
   })
+
+  test('cambiar rol de usuario cajera a administrador', async ({ page }) => {
+    // Buscar botón de cambiar rol en la fila de cajera E2E
+    const cashierRow = page.locator('tr:has-text("cajera.e2e@coffemaya.test")')
+    const roleBtn = cashierRow.locator('button[title="Cambiar rol"]').first()
+
+    if (await roleBtn.count() === 0) {
+      test.skip()
+    }
+
+    await roleBtn.click()
+
+    // Esperar modal de cambio de rol
+    await expect(page.getByText(/cambiar rol/i).first()).toBeVisible({ timeout: 5_000 })
+
+    // Seleccionar nuevo rol
+    const roleSelect = page.locator('select').last()
+    await roleSelect.selectOption({ value: 'admin' })
+
+    // Confirmar cambio
+    const confirmBtn = page.getByRole('button', { name: /cambiar rol/i }).last()
+    await confirmBtn.click()
+
+    await page.waitForTimeout(2000)
+
+    // Verificar que el rol cambió
+    await expect(cashierRow.getByText(/administrador/i).first()).toBeVisible({ timeout: 5_000 })
+
+    // Revertir: volver a cashier
+    const revertBtn = cashierRow.locator('button[title="Cambiar rol"]').first()
+    if (await revertBtn.count() > 0) {
+      await revertBtn.click()
+      await page.waitForTimeout(500)
+      const revertSelect = page.locator('select').last()
+      await revertSelect.selectOption({ value: 'cashier' })
+      await page.getByRole('button', { name: /cambiar rol/i }).last().click()
+      await page.waitForTimeout(1000)
+    }
+  })
 })
