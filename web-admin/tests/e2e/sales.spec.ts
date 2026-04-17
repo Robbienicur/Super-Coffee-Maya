@@ -30,4 +30,18 @@ test.describe('Ventas', () => {
   test('el botón exportar CSV está presente', async ({ page }) => {
     await expect(page.getByRole('button', { name: /exportar|csv/i }).first()).toBeVisible()
   })
+
+  test('click en icono de detalle abre modal con items de la venta', async ({ page }) => {
+    const viewButton = page.locator('button').filter({ has: page.locator('svg') }).first()
+    if (await viewButton.count() === 0) {
+      test.skip()
+    }
+
+    await viewButton.click()
+
+    await expect(page.getByText(/detalle de venta/i)).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText(/cajero:/i)).toBeVisible()
+    await expect(page.getByText(/método:/i)).toBeVisible()
+    await expect(page.getByText(/total:/i)).toBeVisible()
+  })
 })
