@@ -42,4 +42,26 @@ test.describe('Flujo de venta', () => {
 
     await cleanup()
   })
+
+  test('incrementar cantidad de producto en carrito con botón +', async () => {
+    const { window, cleanup } = await launchApp()
+
+    await loginAs(window, 'cashier')
+    await window.waitForTimeout(1500)
+
+    for (const char of 'E2E00001') {
+      await window.keyboard.type(char, { delay: 15 })
+    }
+    await window.keyboard.press('Enter')
+
+    await expect(window.getByText(/Producto E2E Café/i)).toBeVisible({ timeout: 10_000 })
+
+    const plusButton = window.locator('button:has-text("+")').first()
+    await plusButton.click()
+
+    const qtySpan = window.locator('span.text-center.font-medium').first()
+    await expect(qtySpan).toHaveText('2', { timeout: 3_000 })
+
+    await cleanup()
+  })
 })
