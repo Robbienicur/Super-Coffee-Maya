@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { insertAuditLog } from '@/lib/auditLog'
 import type { Product } from '@/types/database'
+import { applyTaxIfNeeded } from '@/lib/taxMath'
 
 interface ProductFormModalProps {
   product: Product | null
@@ -55,6 +56,8 @@ export default function ProductFormModal({
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [includesTax, setIncludesTax] = useState(false)
+  const [taxRatePercent, setTaxRatePercent] = useState('8')
 
   const isEdit = !!product
 
@@ -74,6 +77,8 @@ export default function ProductFormModal({
     } else {
       setForm(EMPTY_FORM)
     }
+    setIncludesTax(false)
+    setTaxRatePercent('8')
     setError('')
   }, [product, open])
 
@@ -88,16 +93,30 @@ export default function ProductFormModal({
       return
     }
 
+    if (!isEdit && parseFloat(form.cost_price) > 0 && !includesTax) {
+      const rate = parseFloat(taxRatePercent)
+      if (isNaN(rate) || rate < 0 || rate > 100) {
+        setError('Ingresa una tasa de impuesto válida (0 a 100) o marca que ya está incluido.')
+        return
+      }
+    }
+
     setLoading(true)
     setError('')
     const supabase = createClient()
+
+    const rawCost = parseFloat(form.cost_price) || 0
+    const taxRateDecimal = (parseFloat(taxRatePercent) || 0) / 100
+    const computedCost = isEdit
+      ? rawCost
+      : applyTaxIfNeeded(rawCost, includesTax, taxRateDecimal)
 
     const payload = {
       barcode: form.barcode || null,
       name: form.name,
       description: form.description,
       price: parseFloat(form.price),
-      cost_price: parseFloat(form.cost_price) || 0,
+      cost_price: computedCost,
       stock: parseInt(form.stock) || 0,
       min_stock: parseInt(form.min_stock) || 5,
       category: form.category,
@@ -235,6 +254,52 @@ export default function ProductFormModal({
               />
             </div>
           </div>
+
+          {!isEdit && (() => {
+            const rawCost = parseFloat(form.cost_price)
+            const rate = parseFloat(taxRatePercent)
+            const rateDecimal = isNaN(rate) ? 0 : rate / 100
+            const preview =
+              !isNaN(rawCost) && rawCost > 0
+                ? applyTaxIfNeeded(rawCost, includesTax, rateDecimal)
+                : null
+            const previewText = preview !== null
+              ? includesTax
+                ? `Se guardará: $${preview.toFixed(2)} (IEPS ya incluido)`
+                : `Se guardará: $${preview.toFixed(2)} (costo $${rawCost.toFixed(2)} + ${isNaN(rate) ? 0 : rate}%)`
+              : null
+
+            return (
+              <div className="p-3 rounded-lg bg-muted/40 border space-y-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includesTax}
+                    onChange={(e) => setIncludesTax(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  ¿Incluye IEPS?
+                </label>
+                <div className="flex items-center gap-2 text-sm">
+                  <span>Tasa %:</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={taxRatePercent}
+                    onChange={(e) => setTaxRatePercent(e.target.value)}
+                    disabled={includesTax}
+                    className="w-24"
+                  />
+                  <span className="text-xs text-muted-foreground">(8% por frontera)</span>
+                </div>
+                {previewText && (
+                  <p className="text-xs text-muted-foreground italic">{previewText}</p>
+                )}
+              </div>
+            )
+          })()}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
