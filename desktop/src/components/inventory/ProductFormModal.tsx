@@ -3,6 +3,7 @@ import supabase from '../../lib/supabaseClient'
 import { logAction } from '../../lib/auditLogger'
 import { useBarcode } from '../../hooks/useBarcode'
 import type { Product } from '../../types/database'
+import { applyTaxIfNeeded, DEFAULT_TAX_RATE } from '../../lib/taxMath'
 
 const CATEGORIES = ['Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros']
 
@@ -54,11 +55,15 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [includesTax, setIncludesTax] = useState(false)
+  const [taxRatePercent, setTaxRatePercent] = useState('8')
 
   // Reset form when product prop changes
   useEffect(() => {
     setForm(toFormState(product))
     setError(null)
+    setIncludesTax(false)
+    setTaxRatePercent('8')
   }, [product])
 
   useBarcode({
@@ -85,6 +90,12 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
     if (isNaN(stock) || stock < 0) return 'Las existencias deben ser mayor o igual a 0'
     if (isNaN(minStock) || minStock < 0) return 'Las existencias mínimas deben ser mayor o igual a 0'
     if (!form.category) return 'Selecciona una categoría'
+    if (!isEdit && cost > 0 && !includesTax) {
+      const rate = parseFloat(taxRatePercent)
+      if (isNaN(rate) || rate < 0 || rate > 100) {
+        return 'Ingresa una tasa de impuesto válida (0 a 100) o marca que ya está incluido'
+      }
+    }
     return null
   }
 
@@ -124,7 +135,13 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
     }
 
     const price = parseFloat(form.price)
-    const cost_price = parseFloat(form.cost_price)
+    const rawCost = parseFloat(form.cost_price)
+    const taxRateDecimal = isEdit
+      ? 0
+      : (parseFloat(taxRatePercent) || 0) / 100
+    const cost_price = isEdit
+      ? rawCost
+      : applyTaxIfNeeded(rawCost, includesTax, taxRateDecimal)
     const stock = Math.floor(parseFloat(form.stock))
     const min_stock = Math.floor(parseFloat(form.min_stock))
     const barcode = form.barcode.trim() || null
@@ -308,6 +325,52 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
               />
             </div>
           </div>
+
+          {!isEdit && (() => {
+            const rawCost = parseFloat(form.cost_price)
+            const rate = parseFloat(taxRatePercent)
+            const rateDecimal = isNaN(rate) ? 0 : rate / 100
+            const preview =
+              !isNaN(rawCost) && rawCost > 0
+                ? applyTaxIfNeeded(rawCost, includesTax, rateDecimal)
+                : null
+            const previewText = preview !== null
+              ? includesTax
+                ? `Se guardará: $${preview.toFixed(2)} (IEPS ya incluido)`
+                : `Se guardará: $${preview.toFixed(2)} (costo $${rawCost.toFixed(2)} + ${isNaN(rate) ? 0 : rate}%)`
+              : null
+
+            return (
+              <div className="p-3 rounded-lg bg-coffee-50 border border-coffee-200 space-y-2">
+                <label className="flex items-center gap-2 text-sm text-coffee-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includesTax}
+                    onChange={(e) => setIncludesTax(e.target.checked)}
+                    className="w-4 h-4 accent-coffee-900"
+                  />
+                  ¿Incluye IEPS?
+                </label>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-coffee-700">Tasa %:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={taxRatePercent}
+                    onChange={(e) => setTaxRatePercent(e.target.value)}
+                    disabled={includesTax}
+                    className="w-20 px-2 py-1 rounded bg-white border border-coffee-200 text-coffee-900 outline-none focus:border-coffee-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  />
+                  <span className="text-xs text-coffee-400">(8% por frontera)</span>
+                </div>
+                {previewText && (
+                  <p className="text-xs text-coffee-500 italic">{previewText}</p>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Existencias */}
           <div className="grid grid-cols-2 gap-3">
