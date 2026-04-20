@@ -13,6 +13,7 @@ const makeProduct = (overrides: Partial<Product> = {}): Product => ({
   cost_price: 30,
   stock: 10,
   min_stock: 2,
+  track_stock: true,
   category: 'Bebidas',
   image_url: null,
   is_active: true,

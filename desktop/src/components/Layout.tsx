@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigationStore, type Page } from '../store/navigationStore'
 import supabase from '../lib/supabaseClient'
+import OfflineStatus from './OfflineStatus'
 
 interface NavItem {
   id: Page
@@ -131,9 +132,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <h1 className="text-lg font-semibold text-coffee-900">
             {pageLabels[currentPage]}
           </h1>
-          <span className="text-xs text-coffee-300">
-            {profile?.name || profile?.email} • {profile?.role === 'admin' ? 'Administrador' : 'Cajero'}
-          </span>
+          <div className="flex items-center gap-3">
+            <OfflineStatus />
+            <span className="text-xs text-coffee-300">
+              {profile?.name || profile?.email} • {profile?.role === 'admin' ? 'Administrador' : 'Cajero'}
+            </span>
+          </div>
         </header>
         <div className="flex-1 overflow-auto p-5">
           {children}

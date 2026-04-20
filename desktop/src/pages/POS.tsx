@@ -9,6 +9,7 @@ import CheckoutModal from '../components/CheckoutModal'
 import CancelSaleModal from '../components/CancelSaleModal'
 import type { Product } from '../types/database'
 import { formatMXN } from '../utils/formatMXN'
+import { getCachedProducts, setCachedProducts } from '../lib/offlineQueue'
 
 export default function POS() {
   const [products, setProducts] = useState<Product[]>([])
@@ -33,14 +34,29 @@ export default function POS() {
   const clear = useCartStore((s) => s.clear)
 
   const fetchProducts = useCallback(async () => {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .order('name')
+    // Si hay cache, pintamos ya para que la app sea usable aunque no responda la red.
+    const cached = getCachedProducts()
+    if (cached.length > 0) {
+      setProducts(cached.filter((p) => p.is_active))
+      setLoadingProducts(false)
+    }
 
-    setProducts(data ?? [])
-    setLoadingProducts(false)
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('name')
+
+      if (!error && data) {
+        setProducts(data)
+        setCachedProducts(data)
+      }
+    } catch {
+      // offline: nos quedamos con el cache (si ya lo pintamos arriba).
+    } finally {
+      setLoadingProducts(false)
+    }
   }, [])
 
   useEffect(() => {

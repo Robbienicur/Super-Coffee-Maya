@@ -5,6 +5,7 @@ import supabase from '../lib/supabaseClient'
 import { logAction } from '../lib/auditLogger'
 import { useAuthStore } from '../store/authStore'
 import { formatMXN } from '../utils/formatMXN'
+import { isNetworkError, makeTempId, queuePendingSale } from '../lib/offlineQueue'
 
 interface CheckoutModalProps {
   items: CartItem[]
@@ -23,60 +24,100 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
   const change = amount - total
   const canConfirm = amount >= total && !loading
 
+  const queueOffline = () => {
+    if (!profile) return
+    queuePendingSale({
+      tempId: makeTempId(),
+      created_at_local: new Date().toISOString(),
+      cashier_id: profile.id,
+      cashier_email: profile.email,
+      total,
+      amount_paid: amount,
+      change_given: change,
+      payment_method: 'cash',
+      items: items.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        subtotal: item.product.price * item.quantity,
+      })),
+    })
+    onComplete(change)
+  }
+
   const handleConfirm = async () => {
     if (!canConfirm || !profile) return
     setLoading(true)
     setError(null)
 
-    const { data: sale, error: saleError } = await supabase
-      .from('sales')
-      .insert({
-        cashier_id: profile.id,
+    // Sin red: vamos directo a la cola. La cajera ve "venta completada" igual.
+    if (!navigator.onLine) {
+      queueOffline()
+      return
+    }
+
+    try {
+      const { data: sale, error: saleError } = await supabase
+        .from('sales')
+        .insert({
+          cashier_id: profile.id,
+          total,
+          discount_amount: 0,
+          payment_method: 'cash' as const,
+          amount_paid: amount,
+          change_given: change,
+          status: 'completed' as const,
+          notes: '',
+        })
+        .select('id')
+        .single()
+
+      if (saleError || !sale) {
+        if (isNetworkError(saleError)) {
+          queueOffline()
+          return
+        }
+        setError(saleError?.message ?? 'Error al crear la venta')
+        setLoading(false)
+        return
+      }
+
+      const saleItems = items.map((item) => ({
+        sale_id: sale.id,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        subtotal: item.product.price * item.quantity,
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('sale_items')
+        .insert(saleItems)
+
+      if (itemsError) {
+        await supabase.from('sales').update({ status: 'cancelled' as const }).eq('id', sale.id)
+        setError('Error al registrar los productos: ' + itemsError.message)
+        setLoading(false)
+        return
+      }
+
+      await logAction('SALE_COMPLETED', 'sale', sale.id, undefined, {
         total,
-        discount_amount: 0,
-        payment_method: 'cash' as const,
+        items_count: items.length,
+        payment_method: 'cash',
         amount_paid: amount,
         change_given: change,
-        status: 'completed' as const,
-        notes: '',
       })
-      .select('id')
-      .single()
 
-    if (saleError || !sale) {
-      setError(saleError?.message ?? 'Error al crear la venta')
+      onComplete(change)
+    } catch (err) {
+      if (isNetworkError(err)) {
+        queueOffline()
+        return
+      }
+      setError('Error inesperado al cobrar')
       setLoading(false)
-      return
     }
-
-    const saleItems = items.map((item) => ({
-      sale_id: sale.id,
-      product_id: item.product.id,
-      quantity: item.quantity,
-      unit_price: item.product.price,
-      subtotal: item.product.price * item.quantity,
-    }))
-
-    const { error: itemsError } = await supabase
-      .from('sale_items')
-      .insert(saleItems)
-
-    if (itemsError) {
-      await supabase.from('sales').update({ status: 'cancelled' as const }).eq('id', sale.id)
-      setError('Error al registrar los productos: ' + itemsError.message)
-      setLoading(false)
-      return
-    }
-
-    await logAction('SALE_COMPLETED', 'sale', sale.id, undefined, {
-      total,
-      items_count: items.length,
-      payment_method: 'cash',
-      amount_paid: amount,
-      change_given: change,
-    })
-
-    onComplete(change)
   }
 
   return (
