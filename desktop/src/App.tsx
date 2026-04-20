@@ -4,6 +4,7 @@ import { useNavigationStore } from './store/navigationStore'
 import Login from './components/Login'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import UpdateBanner from './components/UpdateBanner'
 import POS from './pages/POS'
 import Inventory from './pages/Inventory'
 import Sales from './pages/Sales'
@@ -38,16 +39,24 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <Login />
+    return (
+      <>
+        <Login />
+        <UpdateBanner />
+      </>
+    )
   }
 
   const PageComponent = pages[currentPage]
 
   return (
-    <Layout>
-      <ProtectedRoute>
-        <PageComponent />
-      </ProtectedRoute>
-    </Layout>
+    <>
+      <Layout>
+        <ProtectedRoute>
+          <PageComponent />
+        </ProtectedRoute>
+      </Layout>
+      <UpdateBanner />
+    </>
   )
 }
