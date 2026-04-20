@@ -5,7 +5,7 @@ import { useBarcode } from '../../hooks/useBarcode'
 import type { Product } from '../../types/database'
 import { applyTaxIfNeeded, DEFAULT_TAX_RATE } from '../../lib/taxMath'
 
-const CATEGORIES = ['Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros']
+const CATEGORIES = ['Antojitos', 'Platillos', 'Licuados', 'Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros']
 
 interface ProductFormModalProps {
   product: Product | null
@@ -21,6 +21,7 @@ interface FormState {
   cost_price: string
   stock: string
   min_stock: string
+  track_stock: boolean
   description: string
 }
 
@@ -34,6 +35,7 @@ function toFormState(p: Product | null): FormState {
       cost_price: '',
       stock: '',
       min_stock: '5',
+      track_stock: true,
       description: '',
     }
   }
@@ -45,6 +47,7 @@ function toFormState(p: Product | null): FormState {
     cost_price: String(p.cost_price),
     stock: String(p.stock),
     min_stock: String(p.min_stock),
+    track_stock: p.track_stock,
     description: p.description ?? '',
   }
 }
@@ -83,12 +86,14 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
     if (!form.name.trim()) return 'El nombre del producto es obligatorio'
     const price = parseFloat(form.price)
     const cost = parseFloat(form.cost_price)
-    const stock = parseFloat(form.stock)
-    const minStock = parseFloat(form.min_stock)
     if (isNaN(price) || price < 0) return 'El precio de venta debe ser mayor o igual a 0'
     if (isNaN(cost) || cost < 0) return 'El precio de costo debe ser mayor o igual a 0'
-    if (isNaN(stock) || stock < 0) return 'Las existencias deben ser mayor o igual a 0'
-    if (isNaN(minStock) || minStock < 0) return 'Las existencias mínimas deben ser mayor o igual a 0'
+    if (form.track_stock) {
+      const stock = parseFloat(form.stock)
+      const minStock = parseFloat(form.min_stock)
+      if (isNaN(stock) || stock < 0) return 'Las existencias deben ser mayor o igual a 0'
+      if (isNaN(minStock) || minStock < 0) return 'Las existencias mínimas deben ser mayor o igual a 0'
+    }
     if (!form.category) return 'Selecciona una categoría'
     if (!isEdit && cost > 0 && !includesTax) {
       const rate = parseFloat(taxRatePercent)
@@ -142,15 +147,16 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
     const cost_price = isEdit
       ? rawCost
       : applyTaxIfNeeded(rawCost, includesTax, taxRateDecimal)
-    const stock = Math.floor(parseFloat(form.stock))
-    const min_stock = Math.floor(parseFloat(form.min_stock))
+    const track_stock = form.track_stock
+    const stock = track_stock ? Math.floor(parseFloat(form.stock)) : 0
+    const min_stock = track_stock ? Math.floor(parseFloat(form.min_stock)) : 0
     const barcode = form.barcode.trim() || null
     const description = form.description.trim()
 
     if (isEdit && product) {
       const { error: updateError } = await supabase
         .from('products')
-        .update({ name: form.name.trim(), barcode, category: form.category, price, cost_price, stock, min_stock, description })
+        .update({ name: form.name.trim(), barcode, category: form.category, price, cost_price, stock, min_stock, track_stock, description })
         .eq('id', product.id)
 
       if (updateError) {
@@ -171,6 +177,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
         ['cost_price', cost_price],
         ['stock', stock],
         ['min_stock', min_stock],
+        ['track_stock', track_stock],
         ['description', description],
       ]
 
@@ -208,6 +215,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
         cost_price,
         stock,
         min_stock,
+        track_stock,
         description,
         is_active: true,
         image_url: null,
@@ -372,33 +380,51 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
             )
           })()}
 
-          {/* Existencias */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-coffee-700 mb-1">Existencias <span className="text-red-500">*</span></label>
+          {/* Rastrear inventario */}
+          <div className="p-3 rounded-lg bg-coffee-50 border border-coffee-200">
+            <label className="flex items-center gap-2 text-sm text-coffee-800 cursor-pointer">
               <input
-                type="number"
-                min="0"
-                step="1"
-                value={form.stock}
-                onChange={set('stock')}
-                className="w-full px-3 py-2 rounded-lg bg-white border border-coffee-200 text-coffee-900 outline-none focus:border-coffee-500 text-sm"
-                placeholder="0"
+                type="checkbox"
+                checked={form.track_stock}
+                onChange={(e) => setForm((prev) => ({ ...prev, track_stock: e.target.checked }))}
+                className="w-4 h-4 accent-coffee-900"
               />
-            </div>
-            <div>
-              <label className="block text-sm text-coffee-700 mb-1">Existencias mínimas <span className="text-red-500">*</span></label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={form.min_stock}
-                onChange={set('min_stock')}
-                className="w-full px-3 py-2 rounded-lg bg-white border border-coffee-200 text-coffee-900 outline-none focus:border-coffee-500 text-sm"
-                placeholder="5"
-              />
-            </div>
+              Rastrear inventario
+            </label>
+            <p className="text-xs text-coffee-500 mt-1 ml-6">
+              Desactiva esta opción para alimentos preparados al momento u otros productos sin stock.
+            </p>
           </div>
+
+          {/* Existencias (sólo cuando hay tracking) */}
+          {form.track_stock && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-coffee-700 mb-1">Existencias <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.stock}
+                  onChange={set('stock')}
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-coffee-200 text-coffee-900 outline-none focus:border-coffee-500 text-sm"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-coffee-700 mb-1">Existencias mínimas <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.min_stock}
+                  onChange={set('min_stock')}
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-coffee-200 text-coffee-900 outline-none focus:border-coffee-500 text-sm"
+                  placeholder="5"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Descripción */}
           <div>

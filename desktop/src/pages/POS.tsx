@@ -51,7 +51,7 @@ export default function POS() {
     (barcode: string) => {
       const product = products.find((p) => p.barcode === barcode)
       if (product) {
-        if (product.stock <= 0) {
+        if (product.track_stock && product.stock <= 0) {
           showToast(`"${product.name}" sin existencias`, 'error')
           return
         }
@@ -103,7 +103,7 @@ export default function POS() {
         <ProductSearch
           products={products}
           onAddToCart={(product) => {
-            if (product.stock <= 0) return
+            if (product.track_stock && product.stock <= 0) return
             addItem(product)
           }}
           searchInputRef={searchInputRef}

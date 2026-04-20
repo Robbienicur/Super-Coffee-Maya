@@ -9,7 +9,7 @@ import DeleteProductModal from '../components/inventory/DeleteProductModal'
 import CsvImportModal from '../components/inventory/CsvImportModal'
 import type { Product } from '../types/database'
 
-const CATEGORIES = ['Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros']
+const CATEGORIES = ['Antojitos', 'Platillos', 'Licuados', 'Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros']
 
 export default function Inventory() {
   const profile = useAuthStore((s) => s.profile)
@@ -90,7 +90,7 @@ export default function Inventory() {
     }
 
     if (showLowStock) {
-      list = list.filter((p) => p.stock <= p.min_stock)
+      list = list.filter((p) => p.track_stock && p.stock <= p.min_stock)
     }
 
     if (search.trim()) {
@@ -106,7 +106,7 @@ export default function Inventory() {
   }, [products, categoryFilter, showLowStock, search])
 
   const lowStockCount = useMemo(
-    () => products.filter((p) => p.is_active && p.stock <= p.min_stock).length,
+    () => products.filter((p) => p.is_active && p.track_stock && p.stock <= p.min_stock).length,
     [products]
   )
 

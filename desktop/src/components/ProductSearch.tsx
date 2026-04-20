@@ -69,8 +69,8 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
 
       <div className="flex-1 overflow-auto grid grid-cols-3 gap-3 auto-rows-min content-start">
         {filtered.map((product) => {
-          const outOfStock = product.stock <= 0
-          const lowStock = product.stock > 0 && product.stock <= product.min_stock
+          const outOfStock = product.track_stock && product.stock <= 0
+          const lowStock = product.track_stock && product.stock > 0 && product.stock <= product.min_stock
 
           return (
             <button
@@ -96,9 +96,11 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
               <div className="text-base font-bold text-coffee-900">
                 {formatMXN(product.price)}
               </div>
-              <div className="text-xs text-coffee-300 mt-0.5">
-                {outOfStock ? 'Sin existencias' : `${product.stock} disponibles`}
-              </div>
+              {product.track_stock && (
+                <div className="text-xs text-coffee-300 mt-0.5">
+                  {outOfStock ? 'Sin existencias' : `${product.stock} disponibles`}
+                </div>
+              )}
             </button>
           )
         })}

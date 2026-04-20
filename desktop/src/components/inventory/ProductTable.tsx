@@ -44,7 +44,7 @@ export default function ProductTable({
         </thead>
         <tbody>
           {products.map((product) => {
-            const isLowStock = product.stock <= product.min_stock
+            const isLowStock = product.track_stock && product.stock <= product.min_stock
             const rowClass = !product.is_active
               ? 'bg-gray-50 opacity-40'
               : isLowStock
@@ -70,18 +70,22 @@ export default function ProductTable({
                   {formatMXN(product.cost_price)}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <span
-                    className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      isLowStock
-                        ? 'bg-red-100 text-red-700'
-                        : 'text-coffee-900'
-                    }`}
-                  >
-                    {product.stock}
-                  </span>
+                  {product.track_stock ? (
+                    <span
+                      className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        isLowStock
+                          ? 'bg-red-100 text-red-700'
+                          : 'text-coffee-900'
+                      }`}
+                    >
+                      {product.stock}
+                    </span>
+                  ) : (
+                    <span className="text-coffee-300" title="Sin tracking de inventario">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right text-coffee-500">
-                  {product.min_stock}
+                  {product.track_stock ? product.min_stock : '—'}
                 </td>
                 <td className="px-4 py-3">
                   {product.is_active ? (
@@ -102,7 +106,7 @@ export default function ProductTable({
                     >
                       Editar
                     </button>
-                    {product.is_active && (
+                    {product.is_active && product.track_stock && (
                       <button
                         onClick={() => onAdjustStock(product)}
                         className="text-xs px-2.5 py-1 rounded bg-coffee-100 text-coffee-700 hover:bg-coffee-200 transition-colors"
