@@ -22,7 +22,7 @@ export default function LowStockAlerts() {
         .order('stock', { ascending: true })
 
       const products = data as Product[] | null
-      const lowStock = (products ?? []).filter((p) => p.stock <= p.min_stock)
+      const lowStock = (products ?? []).filter((p) => p.track_stock && p.stock <= p.min_stock)
       setProducts(lowStock)
       setLoading(false)
     }

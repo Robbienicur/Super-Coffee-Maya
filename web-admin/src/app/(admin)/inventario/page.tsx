@@ -49,7 +49,7 @@ export default function InventarioPage() {
       .order('stock', { ascending: true })
       .then(({ data: products }) => {
         const low = ((products as Product[]) ?? []).filter(
-          (p) => p.stock <= p.min_stock
+          (p) => p.track_stock && p.stock <= p.min_stock
         )
         setLowStockProducts(low)
         setLowStockLoading(false)

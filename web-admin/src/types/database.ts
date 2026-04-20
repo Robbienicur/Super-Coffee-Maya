@@ -17,6 +17,7 @@ export interface Product {
   cost_price: number
   stock: number
   min_stock: number
+  track_stock: boolean
   category: string
   image_url: string | null
   is_active: boolean

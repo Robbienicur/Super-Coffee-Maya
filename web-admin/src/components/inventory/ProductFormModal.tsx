@@ -31,6 +31,7 @@ interface FormData {
   cost_price: string
   stock: string
   min_stock: string
+  track_stock: boolean
   category: string
   image_url: string
 }
@@ -43,6 +44,7 @@ const EMPTY_FORM: FormData = {
   cost_price: '',
   stock: '',
   min_stock: '5',
+  track_stock: true,
   category: '',
   image_url: '',
 }
@@ -71,6 +73,7 @@ export default function ProductFormModal({
         cost_price: String(product.cost_price),
         stock: String(product.stock),
         min_stock: String(product.min_stock),
+        track_stock: product.track_stock,
         category: product.category,
         image_url: product.image_url ?? '',
       })
@@ -117,8 +120,9 @@ export default function ProductFormModal({
       description: form.description,
       price: parseFloat(form.price),
       cost_price: computedCost,
-      stock: parseInt(form.stock) || 0,
-      min_stock: parseInt(form.min_stock) || 5,
+      stock: form.track_stock ? (parseInt(form.stock) || 0) : 0,
+      min_stock: form.track_stock ? (parseInt(form.min_stock) || 5) : 0,
+      track_stock: form.track_stock,
       category: form.category,
       image_url: form.image_url || null,
     }
@@ -301,26 +305,43 @@ export default function ProductFormModal({
             )
           })()}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Stock</Label>
-              <Input
-                type="number"
-                min="0"
-                value={form.stock}
-                onChange={(e) => updateField('stock', e.target.value)}
+          <div className="p-3 rounded-lg bg-muted/40 border">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.track_stock}
+                onChange={(e) => setForm((prev) => ({ ...prev, track_stock: e.target.checked }))}
+                className="w-4 h-4"
               />
-            </div>
-            <div>
-              <Label>Stock mínimo</Label>
-              <Input
-                type="number"
-                min="0"
-                value={form.min_stock}
-                onChange={(e) => updateField('min_stock', e.target.value)}
-              />
-            </div>
+              Rastrear inventario
+            </label>
+            <p className="text-xs text-muted-foreground mt-1 ml-6">
+              Desactiva esta opción para alimentos preparados al momento u otros productos sin stock.
+            </p>
           </div>
+
+          {form.track_stock && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Stock</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.stock}
+                  onChange={(e) => updateField('stock', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Stock mínimo</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.min_stock}
+                  onChange={(e) => updateField('min_stock', e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <Label>URL de imagen</Label>

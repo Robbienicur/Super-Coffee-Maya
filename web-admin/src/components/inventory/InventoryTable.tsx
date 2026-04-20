@@ -64,7 +64,7 @@ export default function InventoryTable({
         </TableHeader>
         <TableBody>
           {data.map((product) => {
-            const isLowStock = product.stock <= product.min_stock
+            const isLowStock = product.track_stock && product.stock <= product.min_stock
             return (
               <TableRow key={product.id}>
                 <TableCell className="text-sm text-coffee-500 font-mono">
@@ -81,12 +81,16 @@ export default function InventoryTable({
                   {formatMXN(product.cost_price)}
                 </TableCell>
                 <TableCell className="text-right text-sm">
-                  <span className={isLowStock ? 'text-danger font-bold' : ''}>
-                    {product.stock}
-                  </span>
+                  {product.track_stock ? (
+                    <span className={isLowStock ? 'text-danger font-bold' : ''}>
+                      {product.stock}
+                    </span>
+                  ) : (
+                    <span className="text-coffee-300" title="Sin tracking de inventario">—</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right text-sm text-coffee-500">
-                  {product.min_stock}
+                  {product.track_stock ? product.min_stock : '—'}
                 </TableCell>
                 <TableCell>
                   <Badge
