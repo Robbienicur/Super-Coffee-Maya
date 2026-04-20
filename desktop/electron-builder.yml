@@ -26,3 +26,8 @@ nsis:
   shortcutName: Coffe Maya POS
   createDesktopShortcut: true
   createStartMenuShortcut: true
+
+publish:
+  provider: github
+  owner: Robbienicur
+  repo: Super-Coffee-Maya
