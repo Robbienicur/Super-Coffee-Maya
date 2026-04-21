@@ -4,9 +4,8 @@ import supabase from '../lib/supabaseClient'
 import { logAction } from '../lib/auditLogger'
 import { useAuthStore } from '../store/authStore'
 import type { Sale } from '../types/database'
-
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../utils/formatMXN'
+import { getMexicoDayStart } from '../utils/mexicoTime'
 
 interface SaleWithCount extends Sale {
   item_count: number
@@ -21,23 +20,19 @@ export default function CancelSaleModal({ onClose }: CancelSaleModalProps) {
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const profile = useAuthStore((s) => s.profile)
 
   useEffect(() => {
     const fetchSales = async () => {
       if (!profile) return
 
-      const now = new Date()
-      const mexicoOffset = now.toLocaleString('en-US', { timeZone: 'America/Mexico_City' })
-      const mexicoMidnight = new Date(mexicoOffset)
-      mexicoMidnight.setHours(0, 0, 0, 0)
-
       const { data } = await supabase
         .from('sales')
         .select('*, sale_items(count)')
         .eq('cashier_id', profile.id)
         .eq('status', 'completed')
-        .gte('created_at', mexicoMidnight.toISOString())
+        .gte('created_at', getMexicoDayStart())
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -61,10 +56,12 @@ export default function CancelSaleModal({ onClose }: CancelSaleModalProps) {
       .eq('id', sale.id)
 
     if (error) {
-      alert('Error al cancelar: ' + error.message)
+      setErrorMsg('Error al cancelar: ' + error.message)
       setCancelling(null)
       return
     }
+
+    setErrorMsg(null)
 
     await logAction('SALE_CANCELLED', 'sale', sale.id, {
       total: sale.total,
@@ -143,6 +140,12 @@ export default function CancelSaleModal({ onClose }: CancelSaleModalProps) {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {errorMsg && (
+          <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-700 text-center">
+            {errorMsg}
           </div>
         )}
 

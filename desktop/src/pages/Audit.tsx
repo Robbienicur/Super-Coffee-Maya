@@ -4,6 +4,7 @@ import supabase from '../lib/supabaseClient'
 import type { AuditLog } from '../types/database'
 import AuditFilters, { type AuditFilterValues, EMPTY_FILTERS } from '../components/audit/AuditFilters'
 import AuditTable from '../components/audit/AuditTable'
+import { getMexicoDayStart, getMexicoDayEnd } from '../utils/mexicoTime'
 
 const PAGE_SIZE = 50
 
@@ -27,8 +28,8 @@ export default function Audit() {
       .order('created_at', { ascending: false })
       .range(from, to)
 
-    if (filters.dateFrom) query = query.gte('created_at', `${filters.dateFrom}T00:00:00`)
-    if (filters.dateTo) query = query.lte('created_at', `${filters.dateTo}T23:59:59`)
+    if (filters.dateFrom) query = query.gte('created_at', getMexicoDayStart(new Date(`${filters.dateFrom}T12:00:00Z`)))
+    if (filters.dateTo) query = query.lte('created_at', getMexicoDayEnd(new Date(`${filters.dateTo}T12:00:00Z`)))
     if (filters.userId) query = query.eq('user_id', filters.userId)
     if (filters.action) query = query.eq('action', filters.action)
     if (filters.entityType) query = query.eq('entity_type', filters.entityType)
@@ -72,8 +73,8 @@ export default function Audit() {
       .order('created_at', { ascending: false })
       .limit(1000)
 
-    if (filters.dateFrom) query = query.gte('created_at', `${filters.dateFrom}T00:00:00`)
-    if (filters.dateTo) query = query.lte('created_at', `${filters.dateTo}T23:59:59`)
+    if (filters.dateFrom) query = query.gte('created_at', getMexicoDayStart(new Date(`${filters.dateFrom}T12:00:00Z`)))
+    if (filters.dateTo) query = query.lte('created_at', getMexicoDayEnd(new Date(`${filters.dateTo}T12:00:00Z`)))
     if (filters.userId) query = query.eq('user_id', filters.userId)
     if (filters.action) query = query.eq('action', filters.action)
     if (filters.entityType) query = query.eq('entity_type', filters.entityType)

@@ -5,15 +5,10 @@ import SalesFilters, { type SalesFilterValues } from '../components/sales/SalesF
 import SalesTable, { type SaleWithCashier } from '../components/sales/SalesTable'
 import CancelSaleModal from '../components/sales/CancelSaleModal'
 import RefundSaleModal from '../components/sales/RefundSaleModal'
+import { getMexicoDayStart, getMexicoDayEnd } from '../utils/mexicoTime'
 
 function todayRange(): { start: string; end: string } {
-  const now = new Date()
-  const mx = new Date(now.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }))
-  const y = mx.getFullYear()
-  const m = String(mx.getMonth() + 1).padStart(2, '0')
-  const d = String(mx.getDate()).padStart(2, '0')
-  const dayStr = `${y}-${m}-${d}`
-  return { start: `${dayStr}T00:00:00`, end: `${dayStr}T23:59:59` }
+  return { start: getMexicoDayStart(), end: getMexicoDayEnd() }
 }
 
 const DEFAULT_FILTERS: SalesFilterValues = {
