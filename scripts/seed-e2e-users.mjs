@@ -42,6 +42,15 @@ async function ensureUser({ email, password, user_metadata }) {
     throw error
   }
 
+  // handle_new_user siempre crea como 'cashier'. Si pedimos admin, lo promovemos via service_role.
+  if (user_metadata.role && user_metadata.role !== 'cashier') {
+    const { error: roleError } = await supabase
+      .from('profiles')
+      .update({ role: user_metadata.role })
+      .eq('id', data.user.id)
+    if (roleError) throw roleError
+  }
+
   console.log(`- ${email}: creado (id ${data.user.id}, rol ${user_metadata.role})`)
 }
 
