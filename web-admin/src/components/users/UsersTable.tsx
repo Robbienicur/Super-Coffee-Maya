@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Shield, Power } from 'lucide-react'
 import { formatDateMX } from '@/lib/format'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Profile } from '@/types/database'
 
 interface UsersTableProps {
@@ -27,6 +28,7 @@ export default function UsersTable({
   onChangeRole,
   onToggleActive,
 }: UsersTableProps) {
+  const currentUser = useCurrentUser()
   if (loading) {
     return <p className="text-coffee-300 text-sm py-8 text-center">Cargando usuarios...</p>
   }
@@ -48,56 +50,62 @@ export default function UsersTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {data.map((user) => (
-          <TableRow key={user.id}>
-            <TableCell className="text-sm font-medium text-coffee-900">
-              {user.name || '—'}
-            </TableCell>
-            <TableCell className="text-sm">{user.email}</TableCell>
-            <TableCell>
-              <Badge
-                variant={user.role === 'admin' ? 'default' : 'secondary'}
-                className="text-[10px]"
-              >
-                {user.role === 'admin' ? 'Administrador' : 'Cajero'}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <Badge
-                variant={user.is_active ? 'default' : 'destructive'}
-                className="text-[10px]"
-              >
-                {user.is_active ? 'Activo' : 'Inactivo'}
-              </Badge>
-            </TableCell>
-            <TableCell className="text-sm text-coffee-500">
-              {formatDateMX(user.created_at)}
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => onChangeRole(user)}
-                  title="Cambiar rol"
+        {data.map((user) => {
+          const isSelf = currentUser?.id === user.id
+          const selfTitle = isSelf ? 'No puedes modificar tu propia cuenta' : undefined
+          return (
+            <TableRow key={user.id}>
+              <TableCell className="text-sm font-medium text-coffee-900">
+                {user.name || '—'}
+              </TableCell>
+              <TableCell className="text-sm">{user.email}</TableCell>
+              <TableCell>
+                <Badge
+                  variant={user.role === 'admin' ? 'default' : 'secondary'}
+                  className="text-[10px]"
                 >
-                  <Shield size={14} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => onToggleActive(user)}
-                  title={user.is_active ? 'Desactivar' : 'Activar'}
+                  {user.role === 'admin' ? 'Administrador' : 'Cajero'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={user.is_active ? 'default' : 'destructive'}
+                  className="text-[10px]"
                 >
-                  <Power
-                    size={14}
-                    className={user.is_active ? 'text-success' : 'text-coffee-300'}
-                  />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
+                  {user.is_active ? 'Activo' : 'Inactivo'}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-sm text-coffee-500">
+                {formatDateMX(user.created_at)}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onChangeRole(user)}
+                    disabled={isSelf}
+                    title={selfTitle ?? 'Cambiar rol'}
+                  >
+                    <Shield size={14} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onToggleActive(user)}
+                    disabled={isSelf}
+                    title={selfTitle ?? (user.is_active ? 'Desactivar' : 'Activar')}
+                  >
+                    <Power
+                      size={14}
+                      className={user.is_active ? 'text-success' : 'text-coffee-300'}
+                    />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          )
+        })}
       </TableBody>
     </Table>
   )

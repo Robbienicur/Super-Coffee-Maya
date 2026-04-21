@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { insertAuditLog } from '@/lib/auditLog'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { Profile } from '@/types/database'
 
 interface ChangeRoleModalProps {
@@ -25,20 +26,40 @@ interface ChangeRoleModalProps {
 export function ChangeRoleModal({ user, open, onClose, onUpdated }: ChangeRoleModalProps) {
   const [newRole, setNewRole] = useState<'admin' | 'cashier'>('cashier')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const currentUser = useCurrentUser()
+
+  const isSelf = !!(currentUser && user && currentUser.id === user.id)
 
   useEffect(() => {
     if (user && open) {
       setNewRole(user.role === 'admin' ? 'cashier' : 'admin')
+      setError('')
     }
   }, [user, open])
 
   async function handleSubmit() {
     if (!user) return
+    if (isSelf) {
+      setError('No puedes modificar tu propia cuenta.')
+      return
+    }
     setLoading(true)
+    setError('')
 
     const supabase = createClient()
-    // @ts-expect-error: supabase-js v2.103 schema inference issue
-    await supabase.from('profiles').update({ role: newRole }).eq('id', user.id)
+    const { error: updateError } = await supabase
+      .from('profiles')
+      // @ts-expect-error: supabase-js v2.103 schema inference issue
+      .update({ role: newRole })
+      .eq('id', user.id)
+
+    if (updateError) {
+      setError(updateError.message)
+      setLoading(false)
+      return
+    }
+
     await insertAuditLog('ROLE_CHANGED', 'user', user.id, { role: user.role }, { role: newRole })
 
     setLoading(false)
@@ -57,22 +78,33 @@ export function ChangeRoleModal({ user, open, onClose, onUpdated }: ChangeRoleMo
             Cambiar rol de {user.name || user.email}
           </DialogDescription>
         </DialogHeader>
-        <div>
-          <Label>Nuevo rol</Label>
-          <select
-            value={newRole}
-            onChange={(e) => setNewRole(e.target.value as 'admin' | 'cashier')}
-            className="w-full h-8 rounded-md border border-input bg-transparent px-3 text-sm text-coffee-900 mt-1"
-          >
-            <option value="cashier">Cajero</option>
-            <option value="admin">Administrador</option>
-          </select>
-        </div>
+        {isSelf ? (
+          <p className="text-danger text-sm">
+            No puedes modificar tu propia cuenta.
+          </p>
+        ) : (
+          <div>
+            <Label>Nuevo rol</Label>
+            <select
+              value={newRole}
+              onChange={(e) => setNewRole(e.target.value as 'admin' | 'cashier')}
+              className="w-full h-8 rounded-md border border-input bg-transparent px-3 text-sm text-coffee-900 mt-1"
+            >
+              <option value="cashier">Cajero</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+        )}
+        {error && <p className="text-danger text-sm">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || newRole === user.role}>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || isSelf || newRole === user.role}
+            title={isSelf ? 'No puedes modificar tu propia cuenta' : undefined}
+          >
             {loading ? 'Guardando...' : 'Cambiar Rol'}
           </Button>
         </DialogFooter>
@@ -90,15 +122,38 @@ interface ToggleActiveModalProps {
 
 export function ToggleActiveModal({ user, open, onClose, onUpdated }: ToggleActiveModalProps) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const currentUser = useCurrentUser()
+
+  const isSelf = !!(currentUser && user && currentUser.id === user.id)
+
+  useEffect(() => {
+    if (open) setError('')
+  }, [open])
 
   async function handleConfirm() {
     if (!user) return
+    if (isSelf) {
+      setError('No puedes modificar tu propia cuenta.')
+      return
+    }
     setLoading(true)
+    setError('')
 
     const newActive = !user.is_active
     const supabase = createClient()
-    // @ts-expect-error: supabase-js v2.103 schema inference issue
-    await supabase.from('profiles').update({ is_active: newActive }).eq('id', user.id)
+    const { error: updateError } = await supabase
+      .from('profiles')
+      // @ts-expect-error: supabase-js v2.103 schema inference issue
+      .update({ is_active: newActive })
+      .eq('id', user.id)
+
+    if (updateError) {
+      setError(updateError.message)
+      setLoading(false)
+      return
+    }
+
     await insertAuditLog(
       newActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED',
       'user',
@@ -122,10 +177,14 @@ export function ToggleActiveModal({ user, open, onClose, onUpdated }: ToggleActi
         <DialogHeader>
           <DialogTitle>{user.is_active ? 'Desactivar' : 'Activar'} Usuario</DialogTitle>
           <DialogDescription>
-            ¿Estás seguro de {action} a {user.name || user.email}?
-            {user.is_active && ' El usuario no podrá iniciar sesión.'}
+            {isSelf
+              ? 'No puedes modificar tu propia cuenta.'
+              : `¿Estás seguro de ${action} a ${user.name || user.email}?${
+                  user.is_active ? ' El usuario no podrá iniciar sesión.' : ''
+                }`}
           </DialogDescription>
         </DialogHeader>
+        {error && <p className="text-danger text-sm">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
@@ -133,7 +192,8 @@ export function ToggleActiveModal({ user, open, onClose, onUpdated }: ToggleActi
           <Button
             variant={user.is_active ? 'destructive' : 'default'}
             onClick={handleConfirm}
-            disabled={loading}
+            disabled={loading || isSelf}
+            title={isSelf ? 'No puedes modificar tu propia cuenta' : undefined}
           >
             {loading ? 'Procesando...' : user.is_active ? 'Desactivar' : 'Activar'}
           </Button>

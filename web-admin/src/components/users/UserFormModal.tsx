@@ -11,9 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
-import { insertAuditLog } from '@/lib/auditLog'
 
 interface UserFormModalProps {
   open: boolean
@@ -47,58 +44,31 @@ export default function UserFormModal({
       setError('Email, nombre y contraseña son obligatorios.')
       return
     }
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.')
+    if (password.length < 10 || !/\d/.test(password)) {
+      setError('La contraseña debe tener mínimo 10 caracteres e incluir al menos un número.')
       return
     }
 
     setLoading(true)
     setError('')
 
-    // Isolated client — signUp won't overwrite admin's session cookies
-    const tempClient = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { persistSession: false } }
-    )
-
-    const { data: signUpData, error: signUpError } = await tempClient.auth.signUp({
-      email,
-      password,
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'No se pudo crear el usuario.')
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error inesperado.')
       setLoading(false)
       return
     }
-
-    const newUserId = signUpData.user?.id
-    if (!newUserId) {
-      setError('No se pudo crear el usuario.')
-      setLoading(false)
-      return
-    }
-
-    // Use admin's authenticated client to update the profile
-    const supabase = createClient()
-
-    // Brief wait for the handle_new_user trigger to create the profile row
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      // @ts-expect-error: supabase-js v2.103 schema inference issue
-      .update({ name, role })
-      .eq('id', newUserId)
-
-    if (updateError) {
-      setError(`Usuario creado pero falló actualizar perfil: ${updateError.message}`)
-      setLoading(false)
-      return
-    }
-
-    await insertAuditLog('USER_CREATED', 'user', newUserId, null, { email, name, role })
 
     setLoading(false)
     resetForm()
@@ -149,7 +119,7 @@ export default function UserFormModal({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 10 caracteres, incluir un número"
               required
             />
           </div>

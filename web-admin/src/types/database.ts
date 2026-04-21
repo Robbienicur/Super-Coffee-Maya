@@ -4,6 +4,7 @@ export interface Profile {
   name: string
   role: 'admin' | 'cashier'
   is_active: boolean
+  last_activity_at: string | null
   created_at: string
   updated_at: string
 }
@@ -35,6 +36,7 @@ export interface Sale {
   change_given: number
   status: 'completed' | 'cancelled' | 'refunded'
   notes: string
+  stock_restored: boolean
   created_at: string
 }
 
@@ -84,7 +86,14 @@ export interface Database {
       audit_logs: { Row: AuditLog; Insert: Omit<AuditLog, 'id' | 'created_at' | 'ip_address'> & Partial<Pick<AuditLog, 'ip_address'>>; Update: never; Relationships: [] }
       stock_adjustments: { Row: StockAdjustment; Insert: Omit<StockAdjustment, 'id' | 'created_at'>; Update: never; Relationships: [] }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
+    Views: {
+      products_low_stock: { Row: Product; Relationships: [] }
+    }
+    Functions: {
+      get_today_best_seller: {
+        Args: Record<string, never>
+        Returns: { product_id: string; name: string; total_qty: number }[]
+      }
+    }
   }
 }
