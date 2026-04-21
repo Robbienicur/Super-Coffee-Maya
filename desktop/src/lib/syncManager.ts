@@ -1,6 +1,7 @@
 import supabase from './supabaseClient'
 import {
   getPendingSales,
+  markPendingSaleFailed,
   removePendingSale,
   type PendingSale,
 } from './offlineQueue'
@@ -8,6 +9,7 @@ import {
 let syncing = false
 
 // Intenta insertar todas las ventas pendientes. Retorna cuántas sincronizó.
+// Una falla individual no corta al resto; cada venta es atómica.
 export async function drainPendingSales(): Promise<number> {
   if (syncing) return 0
   syncing = true
@@ -18,11 +20,10 @@ export async function drainPendingSales(): Promise<number> {
     for (const sale of pending) {
       const ok = await pushOne(sale)
       if (ok) {
-        removePendingSale(sale.tempId)
+        await removePendingSale(sale.tempId)
         synced += 1
       } else {
-        // si una falla, cortamos para no spamear; reintentará en el próximo tick
-        break
+        await markPendingSaleFailed(sale.tempId)
       }
     }
   } finally {
@@ -32,6 +33,24 @@ export async function drainPendingSales(): Promise<number> {
 }
 
 async function pushOne(sale: PendingSale): Promise<boolean> {
+  // Idempotencia: si ya existe una venta con el mismo client_sale_id, la damos por sincronizada.
+  if (sale.client_sale_id) {
+    const { data: existing } = await supabase
+      .from('sales')
+      .select('id')
+      .like('notes', `client_sale_id:${sale.client_sale_id}%`)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      return true
+    }
+  }
+
+  const noteParts = [
+    sale.client_sale_id ? `client_sale_id:${sale.client_sale_id}` : '',
+    `sync offline ${sale.created_at_local}`,
+  ].filter(Boolean)
+
   const { data, error } = await supabase
     .from('sales')
     .insert({
@@ -42,7 +61,7 @@ async function pushOne(sale: PendingSale): Promise<boolean> {
       amount_paid: sale.amount_paid,
       change_given: sale.change_given,
       status: 'completed' as const,
-      notes: `sync offline ${sale.created_at_local}`,
+      notes: noteParts.join(' | '),
     })
     .select('id')
     .single()
@@ -79,6 +98,7 @@ async function pushOne(sale: PendingSale): Promise<boolean> {
       change_given: sale.change_given,
       synced_from_offline: true,
       original_created_at_local: sale.created_at_local,
+      client_sale_id: sale.client_sale_id,
     },
   })
 

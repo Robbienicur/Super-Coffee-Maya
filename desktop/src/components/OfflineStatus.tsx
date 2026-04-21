@@ -1,32 +1,63 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Wifi, WifiOff, RefreshCw } from 'lucide-react'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
-import { pendingSalesCount } from '../lib/offlineQueue'
+import { onQueueChange, pendingSalesCount } from '../lib/offlineQueue'
 import { drainPendingSales } from '../lib/syncManager'
+
+const BACKOFF_STEPS_MS = [5_000, 10_000, 30_000, 60_000]
 
 export default function OfflineStatus() {
   const online = useOnlineStatus()
   const [pending, setPending] = useState(pendingSalesCount())
   const [syncing, setSyncing] = useState(false)
+  const backoffIdxRef = useRef(0)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Recontar cuando cambia la cola (otro tab/venta). Poll barato, sólo a localStorage.
   useEffect(() => {
     const tick = () => setPending(pendingSalesCount())
     const id = setInterval(tick, 2000)
+    const off = onQueueChange(tick)
     window.addEventListener('storage', tick)
     return () => {
       clearInterval(id)
+      off()
       window.removeEventListener('storage', tick)
     }
   }, [])
 
-  // Cuando volvemos online y hay cola, drenamos.
+  // Drenar cola con backoff exponencial.
   useEffect(() => {
-    if (!online || pending === 0 || syncing) return
-    setSyncing(true)
-    drainPendingSales()
-      .then(() => setPending(pendingSalesCount()))
-      .finally(() => setSyncing(false))
+    if (!online || pending === 0 || syncing) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+      return
+    }
+
+    const runDrain = async () => {
+      setSyncing(true)
+      const synced = await drainPendingSales()
+      setPending(pendingSalesCount())
+      setSyncing(false)
+
+      if (synced > 0) {
+        backoffIdxRef.current = 0
+      } else if (pendingSalesCount() > 0) {
+        backoffIdxRef.current = Math.min(backoffIdxRef.current + 1, BACKOFF_STEPS_MS.length - 1)
+        const delay = BACKOFF_STEPS_MS[backoffIdxRef.current]
+        timerRef.current = setTimeout(runDrain, delay)
+      }
+    }
+
+    runDrain()
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
   }, [online, pending, syncing])
 
   if (online && pending === 0) {
