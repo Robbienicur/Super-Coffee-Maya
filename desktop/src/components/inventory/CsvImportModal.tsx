@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react'
 import supabase from '../../lib/supabaseClient'
 import { logAction } from '../../lib/auditLogger'
+import { CATEGORIES } from '../../utils/categories'
 
-const CATEGORIES = ['Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros'] as const
+const BATCH_SIZE = 50
 
 interface CsvImportModalProps {
   onClose: () => void
@@ -84,12 +85,46 @@ function validateRow(cols: string[], rowIndex: number): Omit<ParsedRow, 'status'
   }
 }
 
+// Parser CSV tolerante a comillas dobles y comas dentro de campos.
+// No soporta saltos de línea dentro de un campo (suficiente para nuestro formato).
+function parseCsvLine(line: string): string[] {
+  const out: string[] = []
+  let cur = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"'
+          i++
+        } else {
+          inQuotes = false
+        }
+      } else {
+        cur += ch
+      }
+    } else {
+      if (ch === ',') {
+        out.push(cur)
+        cur = ''
+      } else if (ch === '"' && cur === '') {
+        inQuotes = true
+      } else {
+        cur += ch
+      }
+    }
+  }
+  out.push(cur)
+  return out
+}
+
 function parseCsv(text: string): Array<Omit<ParsedRow, 'status' | 'existingId'>> {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '')
   // skip header row
   const dataLines = lines.slice(1)
   return dataLines.map((line, i) => {
-    const cols = line.split(',')
+    const cols = parseCsvLine(line)
     return validateRow(cols, i + 2) // +2: 1-based + skip header
   })
 }
@@ -153,7 +188,48 @@ export default function CsvImportModal({ onClose, onImported }: CsvImportModalPr
     let updated = 0
     let errors = 0
 
-    for (const row of validRows) {
+    const toInsert = validRows.filter((r) => r.status === 'nuevo')
+    const toUpdate = validRows.filter((r) => r.status === 'actualizar' && r.existingId)
+
+    // Inserts por lotes de BATCH_SIZE.
+    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+      const batch = toInsert.slice(i, i + BATCH_SIZE)
+      const payload = batch.map((row) => ({
+        name: row.name,
+        barcode: row.barcode || null,
+        category: row.category,
+        price: row.price,
+        cost_price: row.cost_price,
+        stock: row.stock,
+        min_stock: row.min_stock,
+        description: row.description,
+        is_active: true,
+        image_url: null,
+      }))
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert(payload)
+        .select('id')
+
+      if (error || !data) {
+        errors += batch.length
+        continue
+      }
+
+      created += data.length
+      for (let j = 0; j < data.length; j++) {
+        const inserted = data[j]
+        const src = payload[j]
+        await logAction('PRODUCT_CREATED', 'product', inserted.id, undefined, {
+          ...src,
+          source: 'csv_import',
+        })
+      }
+    }
+
+    // Updates por id (no se pueden batch por PK distinta).
+    for (const row of toUpdate) {
       const productData = {
         name: row.name,
         barcode: row.barcode || null,
@@ -167,37 +243,19 @@ export default function CsvImportModal({ onClose, onImported }: CsvImportModalPr
         image_url: null,
       }
 
-      if (row.status === 'actualizar' && row.existingId) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', row.existingId)
+      const { error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', row.existingId!)
 
-        if (error) {
-          errors++
-        } else {
-          await logAction('PRODUCT_UPDATED', 'product', row.existingId, undefined, {
-            ...productData,
-            source: 'csv_import',
-          })
-          updated++
-        }
+      if (error) {
+        errors++
       } else {
-        const { data: inserted, error } = await supabase
-          .from('products')
-          .insert(productData)
-          .select('id')
-          .single()
-
-        if (error || !inserted) {
-          errors++
-        } else {
-          await logAction('PRODUCT_CREATED', 'product', inserted.id, undefined, {
-            ...productData,
-            source: 'csv_import',
-          })
-          created++
-        }
+        await logAction('PRODUCT_UPDATED', 'product', row.existingId!, undefined, {
+          ...productData,
+          source: 'csv_import',
+        })
+        updated++
       }
     }
 

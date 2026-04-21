@@ -8,8 +8,7 @@ import StockAdjustModal from '../components/inventory/StockAdjustModal'
 import DeleteProductModal from '../components/inventory/DeleteProductModal'
 import CsvImportModal from '../components/inventory/CsvImportModal'
 import type { Product } from '../types/database'
-
-const CATEGORIES = ['Antojitos', 'Platillos', 'Licuados', 'Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros']
+import { CATEGORIES } from '../utils/categories'
 
 export default function Inventory() {
   const profile = useAuthStore((s) => s.profile)
