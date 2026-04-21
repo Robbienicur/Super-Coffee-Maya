@@ -1,13 +1,17 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, safeStorage } from 'electron'
 import { join } from 'path'
 import Store from 'electron-store'
 import electronUpdater from 'electron-updater'
 
 const { autoUpdater } = electronUpdater
 
-const store = new Store({
-  encryptionKey: 'coffe-maya-pos-session',
-})
+// Store sin encryptionKey: sólo guarda blobs ya cifrados con safeStorage
+// (o texto plano como fallback si safeStorage no está disponible).
+const store = new Store<{
+  access_token?: string
+  refresh_token?: string
+  safe_storage?: boolean
+}>()
 
 let mainWindow: BrowserWindow | null = null
 
@@ -50,9 +54,30 @@ function emitUpdateEvent(event: UpdateEvent): void {
   mainWindow?.webContents.send('update:event', event)
 }
 
+function encryptToken(plain: string): string {
+  if (safeStorage.isEncryptionAvailable()) {
+    return safeStorage.encryptString(plain).toString('base64')
+  }
+  console.warn('safeStorage no disponible: token guardado sin cifrar')
+  return plain
+}
+
+function decryptToken(stored: string | undefined, wasEncrypted: boolean): string | undefined {
+  if (!stored) return undefined
+  if (wasEncrypted && safeStorage.isEncryptionAvailable()) {
+    try {
+      return safeStorage.decryptString(Buffer.from(stored, 'base64'))
+    } catch {
+      return undefined
+    }
+  }
+  return stored
+}
+
 ipcMain.handle('auth:get-session', () => {
-  const accessToken = store.get('access_token') as string | undefined
-  const refreshToken = store.get('refresh_token') as string | undefined
+  const wasEncrypted = store.get('safe_storage') === true
+  const accessToken = decryptToken(store.get('access_token'), wasEncrypted)
+  const refreshToken = decryptToken(store.get('refresh_token'), wasEncrypted)
   if (accessToken && refreshToken) {
     return { access_token: accessToken, refresh_token: refreshToken }
   }
@@ -60,13 +85,16 @@ ipcMain.handle('auth:get-session', () => {
 })
 
 ipcMain.handle('auth:save-session', (_event, tokens: { access_token: string; refresh_token: string }) => {
-  store.set('access_token', tokens.access_token)
-  store.set('refresh_token', tokens.refresh_token)
+  const encrypted = safeStorage.isEncryptionAvailable()
+  store.set('access_token', encryptToken(tokens.access_token))
+  store.set('refresh_token', encryptToken(tokens.refresh_token))
+  store.set('safe_storage', encrypted)
 })
 
 ipcMain.handle('auth:clear-session', () => {
   store.delete('access_token')
   store.delete('refresh_token')
+  store.delete('safe_storage')
 })
 
 ipcMain.handle('update:install-now', () => {
