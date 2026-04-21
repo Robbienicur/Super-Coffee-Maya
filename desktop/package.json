@@ -1,6 +1,6 @@
 {
   "name": "coffe-maya-pos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Coffe Maya POS — app de escritorio para punto de venta",
   "type": "module",
   "main": "./out/main/index.js",
