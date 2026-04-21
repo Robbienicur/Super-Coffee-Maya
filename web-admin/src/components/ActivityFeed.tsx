@@ -46,7 +46,7 @@ export default function ActivityFeed() {
     fetchLogs()
 
     const channel = supabase
-      .channel('admin-audit-feed')
+      .channel(`admin-audit-feed-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'audit_logs' },

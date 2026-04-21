@@ -17,6 +17,16 @@ export function getTodayStartISO(): string {
   return new Date(`${mexicoDate}T00:00:00-06:00`).toISOString()
 }
 
+// Dado "YYYY-MM-DD" (input type=date), devuelve el inicio de día en zona Mexico_City como ISO UTC.
+export function getMexicoDayStart(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00-06:00`).toISOString()
+}
+
+// Dado "YYYY-MM-DD", devuelve el fin de día (23:59:59.999) en Mexico_City como ISO UTC.
+export function getMexicoDayEnd(dateStr: string): string {
+  return new Date(`${dateStr}T23:59:59.999-06:00`).toISOString()
+}
+
 export function get30DaysAgoISO(): string {
   const d = new Date()
   d.setDate(d.getDate() - 30)

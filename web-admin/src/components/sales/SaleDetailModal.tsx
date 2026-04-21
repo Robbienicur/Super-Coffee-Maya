@@ -52,6 +52,7 @@ export default function SaleDetailModal({
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState('')
+  const [actionSuccess, setActionSuccess] = useState('')
 
   useEffect(() => {
     if (!sale || !open) return
@@ -73,11 +74,12 @@ export default function SaleDetailModal({
     if (!sale) return
     setActionLoading(true)
     setActionError('')
+    setActionSuccess('')
     const supabase = createClient()
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('sales')
+      // @ts-expect-error: supabase-js v2.103 schema inference issue with manual Database types
       .update({ status: newStatus })
       .eq('id', sale.id)
 
@@ -90,8 +92,16 @@ export default function SaleDetailModal({
     const actionName = newStatus === 'cancelled' ? 'SALE_CANCELLED' : 'SALE_REFUNDED'
     await insertAuditLog(actionName, 'sale', sale.id, { status: sale.status }, { status: newStatus })
     setActionLoading(false)
+    setActionSuccess(
+      newStatus === 'cancelled'
+        ? 'Venta cancelada — stock restaurado.'
+        : 'Venta reembolsada — stock restaurado.'
+    )
     onUpdated()
-    onClose()
+    setTimeout(() => {
+      onClose()
+      setActionSuccess('')
+    }, 1600)
   }
 
   if (!sale) return null
@@ -169,6 +179,9 @@ export default function SaleDetailModal({
 
         {actionError && (
           <p className="text-danger text-sm">{actionError}</p>
+        )}
+        {actionSuccess && (
+          <p className="text-success text-sm">{actionSuccess}</p>
         )}
 
         {sale.status === 'completed' && (

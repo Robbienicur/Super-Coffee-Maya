@@ -27,7 +27,16 @@ export default function LoginPage() {
     })
 
     if (authError) {
-      setError('Credenciales incorrectas')
+      // Mensajes genéricos que no filtran si el email existe o no
+      const code = (authError as { code?: string; status?: number }).code
+      const status = (authError as { status?: number }).status
+      if (code === 'email_not_confirmed') {
+        setError('Tu correo aún no está confirmado. Contacta al administrador.')
+      } else if (code === 'over_request_rate_limit' || status === 429) {
+        setError('Demasiados intentos. Intenta en unos minutos.')
+      } else {
+        setError('Credenciales incorrectas.')
+      }
       setLoading(false)
       return
     }

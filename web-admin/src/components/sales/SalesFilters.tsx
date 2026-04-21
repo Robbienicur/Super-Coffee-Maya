@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getMexicoDayStart, getMexicoDayEnd } from '@/lib/format'
 import type { QueryFilter } from '@/hooks/usePaginatedQuery'
 import type { Profile } from '@/types/database'
 
@@ -47,8 +48,8 @@ export default function SalesFilters({ onFiltersChange }: SalesFiltersProps) {
 
   useEffect(() => {
     const filters: QueryFilter[] = []
-    if (dateFrom) filters.push({ column: 'created_at', op: 'gte', value: `${dateFrom}T00:00:00` })
-    if (dateTo) filters.push({ column: 'created_at', op: 'lte', value: `${dateTo}T23:59:59` })
+    if (dateFrom) filters.push({ column: 'created_at', op: 'gte', value: getMexicoDayStart(dateFrom) })
+    if (dateTo) filters.push({ column: 'created_at', op: 'lte', value: getMexicoDayEnd(dateTo) })
     if (cashierId) filters.push({ column: 'cashier_id', op: 'eq', value: cashierId })
     if (paymentMethod) filters.push({ column: 'payment_method', op: 'eq', value: paymentMethod })
     if (status) filters.push({ column: 'status', op: 'eq', value: status })

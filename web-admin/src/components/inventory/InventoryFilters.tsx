@@ -40,7 +40,12 @@ export default function InventoryFilters({
     debounceRef.current = setTimeout(() => {
       const filters: QueryFilter[] = []
       if (search) {
-        filters.push({ column: 'name', op: 'ilike', value: `%${search}%` })
+        const escaped = search.replace(/[%,]/g, ' ')
+        filters.push({
+          column: 'name',
+          op: 'or',
+          value: `name.ilike.%${escaped}%,barcode.ilike.%${escaped}%`,
+        })
       }
       if (category) {
         filters.push({ column: 'category', op: 'eq', value: category })

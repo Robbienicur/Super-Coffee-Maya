@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export interface QueryFilter {
   column: string
-  op: 'eq' | 'neq' | 'gte' | 'lte' | 'ilike' | 'is'
+  op: 'eq' | 'neq' | 'gte' | 'lte' | 'ilike' | 'is' | 'or'
   value: string | number | boolean | null
 }
 
@@ -41,7 +41,9 @@ export function usePaginatedQuery<T = Record<string, unknown>>({
 
   const refetch = useCallback(() => setTrigger((t) => t + 1), [])
 
-  const filtersKey = JSON.stringify(filters)
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters])
+  const orderByColumn = orderBy.column
+  const orderByAscending = orderBy.ascending
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -61,7 +63,9 @@ export function usePaginatedQuery<T = Record<string, unknown>>({
         .from(table)
         .select(select, { count: 'exact' })
 
-      for (const f of filters) {
+      const parsedFilters: QueryFilter[] = JSON.parse(filtersKey)
+
+      for (const f of parsedFilters) {
         switch (f.op) {
           case 'eq':
             query = query.eq(f.column, f.value as string | number | boolean)
@@ -81,11 +85,16 @@ export function usePaginatedQuery<T = Record<string, unknown>>({
           case 'is':
             query = query.is(f.column, f.value as null)
             break
+          case 'or':
+            // Para este op, `column` es ignorado y `value` es la expresión PostgREST
+            // (ej. "name.ilike.%x%,barcode.ilike.%x%").
+            query = query.or(f.value as string)
+            break
         }
       }
 
       query = query
-        .order(orderBy.column, { ascending: orderBy.ascending })
+        .order(orderByColumn, { ascending: orderByAscending })
         .range(from, to)
 
       const { data: rows, count } = await query
@@ -99,8 +108,7 @@ export function usePaginatedQuery<T = Record<string, unknown>>({
 
     fetchData()
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, select, filtersKey, orderBy.column, orderBy.ascending, page, pageSize, trigger])
+  }, [table, select, filtersKey, orderByColumn, orderByAscending, page, pageSize, trigger])
 
   return { data, totalCount, page, setPage, loading, refetch }
 }

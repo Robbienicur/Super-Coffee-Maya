@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getMexicoDayStart, getMexicoDayEnd } from '@/lib/format'
 import type { QueryFilter } from '@/hooks/usePaginatedQuery'
 import type { Profile } from '@/types/database'
 
@@ -56,8 +57,8 @@ export default function AuditFilters({ onFiltersChange }: AuditFiltersProps) {
 
   useEffect(() => {
     const filters: QueryFilter[] = []
-    if (dateFrom) filters.push({ column: 'created_at', op: 'gte', value: `${dateFrom}T00:00:00` })
-    if (dateTo) filters.push({ column: 'created_at', op: 'lte', value: `${dateTo}T23:59:59` })
+    if (dateFrom) filters.push({ column: 'created_at', op: 'gte', value: getMexicoDayStart(dateFrom) })
+    if (dateTo) filters.push({ column: 'created_at', op: 'lte', value: getMexicoDayEnd(dateTo) })
     if (userId) filters.push({ column: 'user_id', op: 'eq', value: userId })
     if (action) filters.push({ column: 'action', op: 'eq', value: action })
     if (entityType) filters.push({ column: 'entity_type', op: 'eq', value: entityType })

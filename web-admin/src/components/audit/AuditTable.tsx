@@ -52,6 +52,13 @@ const ENTITY_LABELS: Record<string, string> = {
   system: 'Sistema',
 }
 
+const MAX_DIFF_CHARS = 200
+
+function truncate(value: unknown): string {
+  const raw = JSON.stringify(value ?? null)
+  return raw.length > MAX_DIFF_CHARS ? `${raw.slice(0, MAX_DIFF_CHARS)}…` : raw
+}
+
 function DiffView({ oldValue, newValue }: { oldValue: Record<string, unknown> | null; newValue: Record<string, unknown> | null }) {
   if (!oldValue && !newValue) {
     return <p className="text-coffee-300 text-xs">Sin datos de cambio.</p>
@@ -73,8 +80,8 @@ function DiffView({ oldValue, newValue }: { oldValue: Record<string, unknown> | 
               const newVal = newValue?.[key]
               const changed = JSON.stringify(oldVal) !== JSON.stringify(newVal)
               return (
-                <div key={key} className={changed ? 'bg-red-50 px-1 rounded text-danger' : 'text-coffee-500 px-1'}>
-                  {key}: {JSON.stringify(oldVal ?? null)}
+                <div key={key} className={`break-all ${changed ? 'bg-red-50 px-1 rounded text-danger' : 'text-coffee-500 px-1'}`}>
+                  {key}: {truncate(oldVal)}
                 </div>
               )
             })}
@@ -92,8 +99,8 @@ function DiffView({ oldValue, newValue }: { oldValue: Record<string, unknown> | 
               const newVal = newValue[key]
               const changed = JSON.stringify(oldVal) !== JSON.stringify(newVal)
               return (
-                <div key={key} className={changed ? 'bg-green-50 px-1 rounded text-success' : 'text-coffee-500 px-1'}>
-                  {key}: {JSON.stringify(newVal ?? null)}
+                <div key={key} className={`break-all ${changed ? 'bg-green-50 px-1 rounded text-success' : 'text-coffee-500 px-1'}`}>
+                  {key}: {truncate(newVal)}
                 </div>
               )
             })}

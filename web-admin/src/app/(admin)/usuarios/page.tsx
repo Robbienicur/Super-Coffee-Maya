@@ -1,37 +1,31 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Plus } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { usePaginatedQuery } from '@/hooks/usePaginatedQuery'
+import PaginationControls from '@/components/shared/PaginationControls'
 import UsersTable from '@/components/users/UsersTable'
 import UserFormModal from '@/components/users/UserFormModal'
 import { ChangeRoleModal, ToggleActiveModal } from '@/components/users/UserActionModals'
 import type { Profile } from '@/types/database'
 
+const PAGE_SIZE = 25
+
 export default function UsuariosPage() {
-  const [users, setUsers] = useState<Profile[]>([])
-  const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
   const [roleUser, setRoleUser] = useState<Profile | null>(null)
   const [toggleUser, setToggleUser] = useState<Profile | null>(null)
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: true })
-
-    setUsers((data as Profile[]) ?? [])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
+  const { data, totalCount, page, setPage, loading, refetch } =
+    usePaginatedQuery<Profile>({
+      table: 'profiles',
+      select: '*',
+      filters: [],
+      orderBy: { column: 'created_at', ascending: true },
+      pageSize: PAGE_SIZE,
+    })
 
   return (
     <div className="space-y-6">
@@ -52,10 +46,16 @@ export default function UsuariosPage() {
         </CardHeader>
         <CardContent>
           <UsersTable
-            data={users}
+            data={data}
             loading={loading}
             onChangeRole={setRoleUser}
             onToggleActive={setToggleUser}
+          />
+          <PaginationControls
+            page={page}
+            totalCount={totalCount}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
           />
         </CardContent>
       </Card>
@@ -63,21 +63,21 @@ export default function UsuariosPage() {
       <UserFormModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={fetchUsers}
+        onCreated={refetch}
       />
 
       <ChangeRoleModal
         user={roleUser}
         open={!!roleUser}
         onClose={() => setRoleUser(null)}
-        onUpdated={fetchUsers}
+        onUpdated={refetch}
       />
 
       <ToggleActiveModal
         user={toggleUser}
         open={!!toggleUser}
         onClose={() => setToggleUser(null)}
-        onUpdated={fetchUsers}
+        onUpdated={refetch}
       />
     </div>
   )
