@@ -1,8 +1,11 @@
 // desktop/src/pages/POS.tsx
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Wallet } from 'lucide-react'
 import supabase from '../lib/supabaseClient'
 import { useBarcode } from '../hooks/useBarcode'
 import { useCartStore } from '../store/cartStore'
+import { useSessionStore } from '../store/sessionStore'
+import { useNavigationStore } from '../store/navigationStore'
 import ProductSearch from '../components/ProductSearch'
 import Cart from '../components/Cart'
 import CheckoutModal from '../components/CheckoutModal'
@@ -125,7 +128,9 @@ export default function POS() {
   }
 
   return (
-    <div className="flex gap-4 h-full">
+    <div className="flex flex-col h-full">
+      <NoSessionBanner />
+      <div className="flex gap-4 flex-1 min-h-0">
       <div className="flex-[3]">
         <ProductSearch
           products={products}
@@ -171,6 +176,30 @@ export default function POS() {
           {toast.message}
         </div>
       )}
+      </div>
+    </div>
+  )
+}
+
+function NoSessionBanner() {
+  const session = useSessionStore((s) => s.session)
+  const setPage = useNavigationStore((s) => s.setPage)
+
+  if (session) return null
+
+  return (
+    <div className="mb-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-3">
+      <Wallet size={18} className="text-amber-700 flex-shrink-0" />
+      <div className="flex-1 text-sm text-amber-900">
+        <span className="font-semibold">No hay caja abierta.</span>{' '}
+        Abre una sesión antes de cobrar.
+      </div>
+      <button
+        onClick={() => setPage('cash-session')}
+        className="px-3 py-1.5 text-xs font-medium rounded-md bg-amber-700 text-white hover:bg-amber-800 transition-colors"
+      >
+        Abrir caja
+      </button>
     </div>
   )
 }

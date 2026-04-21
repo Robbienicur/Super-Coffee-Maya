@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import supabase from '../lib/supabaseClient'
+import { useSessionStore } from './sessionStore'
 import type { Profile } from '../types/database'
 
 interface AuthStore {
@@ -124,6 +125,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
     await supabase.auth.signOut()
     await window.electronAuth.clearSession()
+    useSessionStore.getState().clear()
     set({ profile: null, isAuthenticated: false })
   },
 }))

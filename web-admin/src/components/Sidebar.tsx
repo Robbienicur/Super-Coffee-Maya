@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   LayoutDashboard,
   ShoppingCart,
+  Wallet,
   Package,
   FileText,
   Users,
@@ -15,6 +16,7 @@ import { createClient } from '@/lib/supabase/client'
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/ventas', label: 'Ventas', icon: ShoppingCart },
+  { href: '/cortes', label: 'Cortes', icon: Wallet },
   { href: '/inventario', label: 'Inventario', icon: Package },
   { href: '/auditoria', label: 'Auditoría', icon: FileText },
   { href: '/usuarios', label: 'Usuarios', icon: Users },

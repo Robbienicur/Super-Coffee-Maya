@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 
 const pageRoles: Record<string, Array<'admin' | 'cashier'>> = {
   pos: ['admin', 'cashier'],
+  'cash-session': ['admin', 'cashier'],
   inventory: ['admin', 'cashier'],
   sales: ['admin', 'cashier'],
   audit: ['admin'],

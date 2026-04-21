@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type Page = 'pos' | 'inventory' | 'sales' | 'audit'
+export type Page = 'pos' | 'inventory' | 'sales' | 'audit' | 'cash-session'
 
 interface NavigationStore {
   currentPage: Page

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package, BarChart3, ClipboardList, LogOut } from 'lucide-react'
+import { ShoppingCart, Package, BarChart3, ClipboardList, Wallet, LogOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import { useSessionStore } from '../store/sessionStore'
 import { useNavigationStore, type Page } from '../store/navigationStore'
 import supabase from '../lib/supabaseClient'
 import OfflineStatus from './OfflineStatus'
@@ -15,6 +16,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'pos', label: 'Punto de Venta', icon: ShoppingCart, roles: ['admin', 'cashier'] },
+  { id: 'cash-session', label: 'Caja', icon: Wallet, roles: ['admin', 'cashier'] },
   { id: 'inventory', label: 'Inventario', icon: Package, roles: ['admin', 'cashier'] },
   { id: 'sales', label: 'Ventas', icon: BarChart3, roles: ['admin', 'cashier'] },
   { id: 'audit', label: 'Auditoría', icon: ClipboardList, roles: ['admin'] },
@@ -22,6 +24,7 @@ const navItems: NavItem[] = [
 
 const pageLabels: Record<Page, string> = {
   pos: 'Punto de Venta',
+  'cash-session': 'Caja',
   inventory: 'Inventario',
   sales: 'Ventas',
   audit: 'Auditoría',
@@ -33,6 +36,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const logout = useAuthStore((s) => s.logout)
   const currentPage = useNavigationStore((s) => s.currentPage)
   const setPage = useNavigationStore((s) => s.setPage)
+  const session = useSessionStore((s) => s.session)
+  const loadSession = useSessionStore((s) => s.loadForCashier)
+
+  useEffect(() => {
+    if (profile?.id) loadSession(profile.id)
+  }, [profile?.id, loadSession])
 
   const visibleItems = navItems.filter((item) =>
     item.roles.includes(profile?.role ?? 'cashier')
@@ -89,6 +98,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <button
                 key={item.id}
                 onClick={() => setPage(item.id)}
+                aria-label={item.label}
+                title={item.label}
                 className={`flex items-center gap-2.5 rounded-lg transition-colors text-left ${
                   expanded ? 'px-3 py-2.5' : 'px-0 py-2.5 justify-center'
                 } ${
@@ -105,6 +116,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full leading-none">
                         {lowStockCount}
                       </span>
+                    )}
+                    {item.id === 'cash-session' && (
+                      <span className={`w-2 h-2 rounded-full ${session ? 'bg-green-400' : 'bg-coffee-400'}`} />
                     )}
                   </span>
                 )}

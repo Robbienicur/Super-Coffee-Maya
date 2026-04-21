@@ -9,9 +9,11 @@ import POS from './pages/POS'
 import Inventory from './pages/Inventory'
 import Sales from './pages/Sales'
 import Audit from './pages/Audit'
+import CashSession from './pages/CashSession'
 
 const pages = {
   pos: POS,
+  'cash-session': CashSession,
   inventory: Inventory,
   sales: Sales,
   audit: Audit,
