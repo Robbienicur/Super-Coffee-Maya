@@ -1,7 +1,5 @@
 import type { Product } from '../../types/database'
-
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../../utils/formatMXN'
 
 interface ProductTableProps {
   products: Product[]

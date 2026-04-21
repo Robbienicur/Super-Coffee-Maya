@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { UpdateEvent } from '../preload'
 
 export default function UpdateBanner() {
   const [event, setEvent] = useState<UpdateEvent | null>(null)

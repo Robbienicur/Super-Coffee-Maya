@@ -43,13 +43,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         return
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (!profile || !profile.is_active) {
+      if (profileError || !profile || !profile.is_active) {
         await supabase.auth.signOut()
         await window.electronAuth.clearSession()
         set({ isLoading: false, isAuthenticated: false })
@@ -75,13 +75,25 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       refresh_token: data.session.refresh_token,
     })
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', data.user.id)
-      .single()
+      .maybeSingle()
 
-    if (!profile || !profile.is_active) {
+    if (profileError) {
+      await supabase.auth.signOut()
+      await window.electronAuth.clearSession()
+      return { error: 'Error al cargar perfil. Contacta a un administrador.' }
+    }
+
+    if (!profile) {
+      await supabase.auth.signOut()
+      await window.electronAuth.clearSession()
+      return { error: 'No existe un perfil asociado a esta cuenta. Contacta a un administrador.' }
+    }
+
+    if (!profile.is_active) {
       await supabase.auth.signOut()
       await window.electronAuth.clearSession()
       return { error: 'Cuenta desactivada' }

@@ -1,6 +1,9 @@
 // desktop/src/components/Cart.tsx
+import { useState } from 'react'
 import { ShoppingCart, X, Check } from 'lucide-react'
 import { useCartStore } from '../store/cartStore'
+import { useAuthStore } from '../store/authStore'
+import { logAction } from '../lib/auditLogger'
 import { formatMXN } from '../utils/formatMXN'
 
 interface CartProps {
@@ -14,11 +17,26 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
   const removeItem = useCartStore((s) => s.removeItem)
   const clear = useCartStore((s) => s.clear)
   const total = useCartStore((s) => s.total)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   const handleClear = () => {
     if (items.length === 0) return
-    if (confirm('¿Vaciar carrito?')) {
-      clear()
+    setConfirmClear(true)
+  }
+
+  const doClear = async () => {
+    const snapshot = items
+    const totalSnap = total()
+    const shouldAudit = isAuthenticated && snapshot.length >= 3
+    clear()
+    setConfirmClear(false)
+    if (shouldAudit) {
+      await logAction('CART_DISCARDED', 'system', undefined, undefined, {
+        total: totalSnap,
+        items_count: snapshot.reduce((sum, i) => sum + i.quantity, 0),
+        distinct_items: snapshot.length,
+      })
     }
   }
 
@@ -117,6 +135,31 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
           Cancelar venta pasada
         </button>
       </div>
+
+      {confirmClear && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fade-in_200ms_ease-out]">
+          <div className="bg-cream rounded-xl p-6 w-full max-w-sm shadow-xl animate-[scale-in_200ms_ease-out]">
+            <h2 className="text-lg font-bold text-coffee-900 mb-2">¿Vaciar carrito?</h2>
+            <p className="text-sm text-coffee-500 mb-4">
+              Se descartarán {items.length} producto{items.length !== 1 ? 's' : ''} distinto{items.length !== 1 ? 's' : ''}.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="flex-1 py-2.5 rounded-lg border border-coffee-200 text-coffee-700 text-sm hover:bg-coffee-100 transition-colors"
+              >
+                No, conservar
+              </button>
+              <button
+                onClick={doClear}
+                className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors"
+              >
+                Sí, vaciar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

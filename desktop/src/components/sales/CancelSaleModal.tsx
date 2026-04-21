@@ -2,9 +2,7 @@ import { useState } from 'react'
 import supabase from '../../lib/supabaseClient'
 import { logAction } from '../../lib/auditLogger'
 import type { Sale } from '../../types/database'
-
-const formatMXN = (amount: number) =>
-  amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+import { formatMXN } from '../../utils/formatMXN'
 
 const formatDateTime = (dateStr: string) =>
   new Date(dateStr).toLocaleString('es-MX', {

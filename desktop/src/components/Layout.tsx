@@ -44,10 +44,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     const fetchLowStock = async () => {
       const { data } = await supabase
         .from('products')
-        .select('stock, min_stock')
+        .select('stock, min_stock, track_stock')
         .eq('is_active', true)
+        .eq('track_stock', true)
 
-      const count = (data ?? []).filter((p) => p.stock <= p.min_stock).length
+      const count = (data ?? []).filter((p) => p.track_stock && p.stock <= p.min_stock).length
       setLowStockCount(count)
     }
 
