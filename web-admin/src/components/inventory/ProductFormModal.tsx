@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/client'
 import { insertAuditLog } from '@/lib/auditLog'
 import type { Product } from '@/types/database'
 import { applyTaxIfNeeded } from '@/lib/taxMath'
+import { PRODUCT_CATEGORIES } from '@/lib/categories'
 
 interface ProductFormModalProps {
   product: Product | null
@@ -131,17 +132,26 @@ export default function ProductFormModal({
       const oldValues: Record<string, unknown> = {}
       const newValues: Record<string, unknown> = {}
 
-      if (product.price !== payload.price) {
-        oldValues.price = product.price
-        newValues.price = payload.price
-      }
-      if (product.stock !== payload.stock) {
-        oldValues.stock = product.stock
-        newValues.stock = payload.stock
-      }
-      if (product.name !== payload.name) {
-        oldValues.name = product.name
-        newValues.name = payload.name
+      const TRACKED_FIELDS: Array<keyof typeof payload> = [
+        'name',
+        'barcode',
+        'description',
+        'category',
+        'price',
+        'cost_price',
+        'stock',
+        'min_stock',
+        'track_stock',
+        'image_url',
+      ]
+
+      for (const field of TRACKED_FIELDS) {
+        const oldVal = (product as unknown as Record<string, unknown>)[field] ?? null
+        const newVal = payload[field] ?? null
+        if (oldVal !== newVal) {
+          oldValues[field] = oldVal
+          newValues[field] = newVal
+        }
       }
 
       const { error: updateError } = await supabase
@@ -157,9 +167,14 @@ export default function ProductFormModal({
       }
 
       if (Object.keys(oldValues).length > 0) {
-        const action = oldValues.price !== undefined
+        const priceChanged = 'price' in oldValues
+        const stockChanged = 'stock' in oldValues
+        const onlyPriceChanged = priceChanged && Object.keys(oldValues).length === 1
+        const onlyStockChanged = stockChanged && Object.keys(oldValues).length === 1
+
+        const action = onlyPriceChanged
           ? 'PRICE_CHANGED'
-          : oldValues.stock !== undefined
+          : onlyStockChanged
             ? 'STOCK_ADJUSTED'
             : 'PRODUCT_UPDATED'
         await insertAuditLog(action, 'product', product.id, oldValues, newValues)
@@ -207,12 +222,17 @@ export default function ProductFormModal({
             </div>
             <div>
               <Label>Categoría *</Label>
-              <Input
+              <select
                 value={form.category}
                 onChange={(e) => updateField('category', e.target.value)}
-                placeholder="Ej: Bebidas"
+                className="w-full h-8 rounded-md border border-input bg-transparent px-3 text-sm text-coffee-900"
                 required
-              />
+              >
+                <option value="">Selecciona...</option>
+                {PRODUCT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
           </div>
 
