@@ -3,9 +3,8 @@ import supabase from '../../lib/supabaseClient'
 import { logAction } from '../../lib/auditLogger'
 import { useBarcode } from '../../hooks/useBarcode'
 import type { Product } from '../../types/database'
-import { applyTaxIfNeeded, DEFAULT_TAX_RATE } from '../../lib/taxMath'
-
-const CATEGORIES = ['Antojitos', 'Platillos', 'Licuados', 'Bebidas', 'Snacks', 'Lácteos', 'Abarrotes', 'Limpieza', 'Otros']
+import { applyTaxIfNeeded } from '../../lib/taxMath'
+import { CATEGORIES } from '../../utils/categories'
 
 interface ProductFormModalProps {
   product: Product | null
@@ -60,6 +59,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
   const [loading, setLoading] = useState(false)
   const [includesTax, setIncludesTax] = useState(false)
   const [taxRatePercent, setTaxRatePercent] = useState('8')
+  const [duplicateFound, setDuplicateFound] = useState<{ id: string; is_active: boolean } | null>(null)
 
   // Reset form when product prop changes
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
       if (isNaN(minStock) || minStock < 0) return 'Las existencias mínimas deben ser mayor o igual a 0'
     }
     if (!form.category) return 'Selecciona una categoría'
-    if (!isEdit && cost > 0 && !includesTax) {
+    if (!isEdit && form.track_stock && cost > 0 && !includesTax) {
       const rate = parseFloat(taxRatePercent)
       if (isNaN(rate) || rate < 0 || rate > 100) {
         return 'Ingresa una tasa de impuesto válida (0 a 100) o marca que ya está incluido'
@@ -104,22 +104,76 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
     return null
   }
 
-  const checkDuplicateBarcode = async (): Promise<boolean> => {
+  const checkDuplicateBarcode = async (): Promise<{ id: string; is_active: boolean } | null> => {
     const bc = form.barcode.trim()
-    if (!bc) return false
+    if (!bc) return null
 
     const query = supabase
       .from('products')
-      .select('id')
+      .select('id, is_active')
       .eq('barcode', bc)
-      .eq('is_active', true)
 
     if (isEdit && product) {
       query.neq('id', product.id)
     }
 
     const { data } = await query.limit(1)
-    return (data ?? []).length > 0
+    const row = (data ?? [])[0]
+    if (!row) return null
+    return { id: row.id, is_active: row.is_active }
+  }
+
+  const handleReactivate = async () => {
+    if (!duplicateFound) return
+    setLoading(true)
+    setError(null)
+
+    const price = parseFloat(form.price)
+    const rawCost = parseFloat(form.cost_price)
+    const taxRateDecimal = (parseFloat(taxRatePercent) || 0) / 100
+    const cost_price = applyTaxIfNeeded(rawCost, includesTax, taxRateDecimal)
+    const track_stock = form.track_stock
+    const stock = track_stock ? Math.floor(parseFloat(form.stock)) : 0
+    const min_stock = track_stock ? Math.floor(parseFloat(form.min_stock)) : 0
+    const barcode = form.barcode.trim() || null
+    const description = form.description.trim()
+
+    const { error: updateError } = await supabase
+      .from('products')
+      .update({
+        name: form.name.trim(),
+        barcode,
+        category: form.category,
+        price,
+        cost_price,
+        stock,
+        min_stock,
+        track_stock,
+        description,
+        is_active: true,
+      })
+      .eq('id', duplicateFound.id)
+
+    if (updateError) {
+      setError('Error al reactivar: ' + updateError.message)
+      setLoading(false)
+      return
+    }
+
+    await logAction('PRODUCT_REACTIVATED', 'product', duplicateFound.id, { is_active: false }, {
+      is_active: true,
+      name: form.name.trim(),
+      barcode,
+      category: form.category,
+      price,
+      cost_price,
+      stock,
+      min_stock,
+      track_stock,
+      description,
+    })
+
+    onSaved()
   }
 
   const handleSubmit = async () => {
@@ -131,10 +185,16 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
 
     setLoading(true)
     setError(null)
+    setDuplicateFound(null)
 
-    const isDupe = await checkDuplicateBarcode()
-    if (isDupe) {
-      setError('Ya existe un producto activo con ese código de barras')
+    const dupe = await checkDuplicateBarcode()
+    if (dupe) {
+      if (!dupe.is_active) {
+        setDuplicateFound(dupe)
+        setError('Existe un producto inactivo con ese código de barras. Puedes reactivarlo.')
+      } else {
+        setError('Ya existe un producto activo con ese código de barras')
+      }
       setLoading(false)
       return
     }
@@ -193,17 +253,17 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
         await logAction('PRODUCT_UPDATED', 'product', product.id, oldValues, newValues)
       }
 
-      // Separate price audit entry if price or cost changed
-      if ('price' in newValues || 'cost_price' in newValues) {
+      if ('price' in newValues) {
         await logAction('PRICE_CHANGED', 'product', product.id,
-          {
-            price: product.price,
-            cost_price: product.cost_price,
-          },
-          {
-            price,
-            cost_price,
-          }
+          { price: product.price },
+          { price }
+        )
+      }
+
+      if ('cost_price' in newValues) {
+        await logAction('COST_CHANGED', 'product', product.id,
+          { cost_price: product.cost_price },
+          { cost_price }
         )
       }
     } else {
@@ -334,7 +394,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
             </div>
           </div>
 
-          {!isEdit && (() => {
+          {!isEdit && form.track_stock && (() => {
             const rawCost = parseFloat(form.cost_price)
             const rate = parseFloat(taxRatePercent)
             const rateDecimal = isNaN(rate) ? 0 : rate / 100
@@ -441,7 +501,17 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
 
         {error && (
           <div className="mt-4 p-3 bg-red-50 rounded-lg text-sm text-red-700">
-            {error}
+            <div>{error}</div>
+            {duplicateFound && !duplicateFound.is_active && (
+              <button
+                type="button"
+                onClick={handleReactivate}
+                disabled={loading}
+                className="mt-2 px-3 py-1.5 rounded bg-coffee-900 text-white text-xs font-medium hover:bg-coffee-800 disabled:opacity-40"
+              >
+                Reactivar producto existente
+              </button>
+            )}
           </div>
         )}
 

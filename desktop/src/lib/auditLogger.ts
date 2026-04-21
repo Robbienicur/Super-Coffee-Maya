@@ -16,7 +16,7 @@ export async function logAction(
     user_email: profile.email,
     action,
     entity_type: entityType,
-    entity_id: entityId ?? '',
+    entity_id: entityId ?? null,
     old_value: oldValue ?? null,
     new_value: newValue ?? null,
   })

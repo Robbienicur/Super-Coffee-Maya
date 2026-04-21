@@ -93,7 +93,7 @@ describe('logAction', () => {
 
     expect(chainable.insert).toHaveBeenCalledWith(
       expect.objectContaining({
-        entity_id: '',
+        entity_id: null,
         old_value: null,
         new_value: null,
       })

@@ -54,7 +54,7 @@ export interface AuditLog {
   user_email: string
   action: string
   entity_type: 'product' | 'sale' | 'user' | 'session' | 'system'
-  entity_id: string
+  entity_id: string | null
   old_value: Record<string, unknown> | null
   new_value: Record<string, unknown> | null
   ip_address: string
