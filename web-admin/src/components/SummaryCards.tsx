@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, ShoppingCart, TrendingUp, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatMXN, getTodayStartISO } from '@/lib/format'
-import type { Sale, SaleItem } from '@/types/database'
+import type { Sale } from '@/types/database'
 
 interface SummaryData {
   salesCount: number
@@ -13,6 +13,8 @@ interface SummaryData {
   avgTicket: number
   bestSeller: string
 }
+
+const REFRESH_MS = 60_000
 
 export default function SummaryCards() {
   const [data, setData] = useState<SummaryData>({
@@ -25,49 +27,40 @@ export default function SummaryCards() {
 
   useEffect(() => {
     const supabase = createClient()
+    let cancelled = false
 
     async function fetchSummary() {
       const todayStart = getTodayStartISO()
 
-      const { data: salesRaw } = await supabase
-        .from('sales')
-        .select('id, total')
-        .eq('status', 'completed')
-        .gte('created_at', todayStart)
+      const [{ data: salesRaw }, { data: bestRaw }] = await Promise.all([
+        supabase
+          .from('sales')
+          .select('id, total')
+          .eq('status', 'completed')
+          .gte('created_at', todayStart),
+        supabase.rpc('get_today_best_seller'),
+      ])
 
       const sales = salesRaw as Pick<Sale, 'id' | 'total'>[] | null
       const salesCount = sales?.length ?? 0
       const revenue = sales?.reduce((sum, s) => sum + Number(s.total), 0) ?? 0
       const avgTicket = salesCount > 0 ? revenue / salesCount : 0
 
-      let bestSeller = '—'
-      if (sales && sales.length > 0) {
-        const saleIds = sales.map((s) => s.id)
-        const { data: itemsRaw } = await supabase
-          .from('sale_items')
-          .select('quantity, product_id, products(name)')
-          .in('sale_id', saleIds)
+      const bestRow = (bestRaw as { name: string }[] | null)?.[0]
+      const bestSeller = bestRow?.name ?? '—'
 
-        type ItemRow = Pick<SaleItem, 'quantity' | 'product_id'> & { products: { name: string } | null }
-        const items = itemsRaw as ItemRow[] | null
-
-        const productCounts: Record<string, { name: string; qty: number }> = {}
-        items?.forEach((item) => {
-          const name = item.products?.name ?? 'Desconocido'
-          const key = item.product_id
-          if (!productCounts[key]) productCounts[key] = { name, qty: 0 }
-          productCounts[key].qty += item.quantity
-        })
-        bestSeller =
-          Object.values(productCounts).sort((a, b) => b.qty - a.qty)[0]
-            ?.name ?? '—'
+      if (!cancelled) {
+        setData({ salesCount, revenue, avgTicket, bestSeller })
+        setLoading(false)
       }
-
-      setData({ salesCount, revenue, avgTicket, bestSeller })
-      setLoading(false)
     }
 
     fetchSummary()
+    const interval = setInterval(fetchSummary, REFRESH_MS)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
   }, [])
 
   const cards = [

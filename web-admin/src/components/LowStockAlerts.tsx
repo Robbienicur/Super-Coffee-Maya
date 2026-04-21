@@ -16,21 +16,18 @@ export default function LowStockAlerts() {
 
     async function fetchLowStock() {
       const { data } = await supabase
-        .from('products')
+        .from('products_low_stock')
         .select('*')
-        .eq('is_active', true)
         .order('stock', { ascending: true })
 
-      const products = data as Product[] | null
-      const lowStock = (products ?? []).filter((p) => p.track_stock && p.stock <= p.min_stock)
-      setProducts(lowStock)
+      setProducts((data as Product[] | null) ?? [])
       setLoading(false)
     }
 
     fetchLowStock()
 
     const channel = supabase
-      .channel('admin-low-stock')
+      .channel(`admin-low-stock-${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'products' },

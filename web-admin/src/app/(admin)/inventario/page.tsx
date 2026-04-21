@@ -37,21 +37,17 @@ export default function InventarioPage() {
       pageSize: PAGE_SIZE,
     })
 
-  // Fetch low stock products client-side (column-to-column comparison not supported by PostgREST)
+  // Low stock: vista products_low_stock hace el filtrado en SQL (RLS hereda de products)
   useEffect(() => {
     if (!lowStockActive) return
     setLowStockLoading(true)
     const supabase = createClient()
     supabase
-      .from('products')
+      .from('products_low_stock')
       .select('*')
-      .eq('is_active', true)
       .order('stock', { ascending: true })
       .then(({ data: products }) => {
-        const low = ((products as Product[]) ?? []).filter(
-          (p) => p.track_stock && p.stock <= p.min_stock
-        )
-        setLowStockProducts(low)
+        setLowStockProducts((products as Product[] | null) ?? [])
         setLowStockLoading(false)
       })
   }, [lowStockActive])
