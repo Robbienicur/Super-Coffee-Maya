@@ -1,5 +1,6 @@
 import { _electron as electron, ElectronApplication, Page } from '@playwright/test'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 
@@ -10,6 +11,8 @@ export type LaunchedApp = {
   cleanup: () => Promise<void>
 }
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 const MAIN_ENTRY = path.resolve(__dirname, '../../../out/main/index.js')
 
 export async function launchApp(): Promise<LaunchedApp> {

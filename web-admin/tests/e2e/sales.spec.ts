@@ -32,11 +32,8 @@ test.describe('Ventas', () => {
   })
 
   test('click en icono de detalle abre modal con items de la venta', async ({ page }) => {
-    const viewButton = page.locator('button').filter({ has: page.locator('svg') }).first()
-    if (await viewButton.count() === 0) {
-      test.skip()
-    }
-
+    const viewButton = page.getByRole('button', { name: /ver detalle de venta/i }).first()
+    await expect(viewButton).toBeVisible({ timeout: 5_000 })
     await viewButton.click()
 
     await expect(page.getByText(/detalle de venta/i)).toBeVisible({ timeout: 5_000 })
@@ -46,12 +43,8 @@ test.describe('Ventas', () => {
   })
 
   test('cancelar venta genera entrada en audit log', async ({ page }) => {
-    // Abrir detalle de una venta completada
-    const viewButton = page.locator('button').filter({ has: page.locator('svg') }).first()
-    if (await viewButton.count() === 0) {
-      test.skip()
-    }
-
+    const viewButton = page.getByRole('button', { name: /ver detalle de venta/i }).first()
+    await expect(viewButton).toBeVisible({ timeout: 5_000 })
     await viewButton.click()
     await expect(page.getByText(/detalle de venta/i)).toBeVisible({ timeout: 5_000 })
 
@@ -63,11 +56,11 @@ test.describe('Ventas', () => {
     await cancelBtn.click()
     await page.waitForTimeout(2000)
 
-    // Verificar que la venta cambió de estado
-    await expect(page.getByText(/cancelada/i).first()).toBeVisible({ timeout: 5_000 })
+    // Verificar que la venta cambió de estado en la tabla
+    await expect(page.locator('tbody').getByText(/cancelada/i).first()).toBeVisible({ timeout: 5_000 })
 
     // Ir a auditoría y verificar la entrada
     await page.goto('/auditoria')
-    await expect(page.getByText(/cancelación|sale_cancelled/i).first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('tbody').getByText(/cancelación|sale_cancelled|venta cancelada/i).first()).toBeVisible({ timeout: 10_000 })
   })
 })

@@ -19,24 +19,20 @@ test.describe('Usuarios', () => {
   test('crear usuario nuevo con rol cashier', async ({ page }) => {
     await page.getByRole('button', { name: /crear|nuevo|agregar/i }).first().click()
 
-    await page.getByLabel(/correo|email/i).fill(NEW_USER_EMAIL)
-    await page.getByLabel(/nombre/i).fill('Cajera Nueva E2E')
-    await page.getByLabel(/contraseña|password/i).fill('nuevo-pass-123')
+    await page.getByPlaceholder(/nombre completo/i).fill('Cajera Nueva E2E')
+    await page.getByPlaceholder(/correo@ejemplo/i).fill(NEW_USER_EMAIL)
+    await page.getByPlaceholder(/mínimo 10 caracteres/i).fill('nuevo-pass-123')
 
-    await page.getByRole('button', { name: /crear|guardar|confirmar/i }).last().click()
+    await page.getByRole('button', { name: /crear usuario/i }).click()
 
     await expect(page.getByText(NEW_USER_EMAIL)).toBeVisible({ timeout: 10_000 })
   })
 
   test('cambiar rol de usuario cajera a administrador', async ({ page }) => {
-    // Buscar botón de cambiar rol en la fila de cajera E2E
     const cashierRow = page.locator('tr:has-text("cajera.e2e@coffemaya.test")')
+    await expect(cashierRow).toBeVisible({ timeout: 5_000 })
+
     const roleBtn = cashierRow.locator('button[title="Cambiar rol"]').first()
-
-    if (await roleBtn.count() === 0) {
-      test.skip()
-    }
-
     await roleBtn.click()
 
     // Esperar modal de cambio de rol
@@ -68,14 +64,10 @@ test.describe('Usuarios', () => {
   })
 
   test('desactivar usuario y verificar estado inactivo', async ({ page }) => {
-    // Buscar botón de desactivar en la fila de cajera E2E
     const cashierRow = page.locator('tr:has-text("cajera.e2e@coffemaya.test")')
+    await expect(cashierRow).toBeVisible({ timeout: 5_000 })
+
     const deactivateBtn = cashierRow.locator('button[title="Desactivar"]').first()
-
-    if (await deactivateBtn.count() === 0) {
-      test.skip()
-    }
-
     await deactivateBtn.click()
 
     // Esperar modal de confirmación

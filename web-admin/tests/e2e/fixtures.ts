@@ -20,6 +20,7 @@ export async function loginAs(page: Page, role: Role) {
   await page.getByLabel('Correo electrónico').fill(email)
   await page.getByLabel('Contraseña').fill(password)
   await page.getByRole('button', { name: /iniciar sesión/i }).click()
+  await page.waitForURL((url) => !url.pathname.startsWith('/login'))
 }
 
 export async function expectAuthenticated(page: Page) {

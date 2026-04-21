@@ -25,6 +25,10 @@ desktop/release/
 *.dmg
 *.AppImage
 
+# Playwright artifacts
+test-results/
+playwright-report/
+
 # SQLite local databases
 *.sqlite
 *.sqlite3

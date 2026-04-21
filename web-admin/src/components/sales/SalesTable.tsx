@@ -99,6 +99,7 @@ export default function SalesTable({
                   <Button
                     variant="ghost"
                     size="icon-xs"
+                    aria-label="Ver detalle de venta"
                     onClick={() => onViewDetail(sale)}
                   >
                     <Eye size={14} />

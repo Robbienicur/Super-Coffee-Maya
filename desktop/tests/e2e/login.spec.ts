@@ -17,8 +17,8 @@ test.describe('Login desktop', () => {
     const { window, cleanup } = await launchApp()
 
     await loginAs(window, 'admin')
-    await expect(window.getByText(/inventario/i).first()).toBeVisible({ timeout: 10_000 })
-    await expect(window.getByText(/auditor/i).first()).toBeVisible()
+    await expect(window.getByRole('button', { name: /inventario/i })).toBeVisible({ timeout: 10_000 })
+    await expect(window.getByRole('button', { name: /auditor/i })).toBeVisible()
 
     await cleanup()
   })

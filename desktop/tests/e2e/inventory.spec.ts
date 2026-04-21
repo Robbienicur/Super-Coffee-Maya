@@ -6,7 +6,7 @@ test.describe('Inventario (admin)', () => {
     const { window, cleanup } = await launchApp()
 
     await loginAs(window, 'admin')
-    await window.getByText(/inventario/i).first().click()
+    await window.getByRole('button', { name: /inventario/i }).click()
 
     await expect(window.getByText(/Producto E2E Café/i)).toBeVisible({ timeout: 10_000 })
     await expect(window.getByText(/Producto E2E Bebida/i)).toBeVisible()
@@ -18,7 +18,7 @@ test.describe('Inventario (admin)', () => {
     const { window, cleanup } = await launchApp()
 
     await loginAs(window, 'admin')
-    await window.getByText(/inventario/i).first().click()
+    await window.getByRole('button', { name: /inventario/i }).click()
 
     await expect(window.getByText(/Producto E2E Café/i)).toBeVisible({ timeout: 10_000 })
 
@@ -28,29 +28,22 @@ test.describe('Inventario (admin)', () => {
     await editBtn.click()
 
     // Esperar modal de edición
-    await expect(window.getByText(/editar producto/i)).toBeVisible({ timeout: 5_000 })
+    const modal = window.getByRole('heading', { name: /editar producto/i }).locator('..')
+    await expect(modal).toBeVisible({ timeout: 5_000 })
 
-    // Cambiar precio de venta
-    const precioInput = window.locator('label:has-text("Precio de venta") + input, label:has-text("Precio de venta") ~ input').first()
-    if (await precioInput.count() === 0) {
-      // Fallback: buscar input por placeholder
-      const altInput = window.locator('input[step="0.01"]').first()
-      await altInput.clear()
-      await altInput.fill('99.99')
-    } else {
-      await precioInput.clear()
-      await precioInput.fill('99.99')
-    }
+    // Cambiar precio de venta (primer input con step="0.01")
+    const precioInput = window.locator('input[step="0.01"]').first()
+    await precioInput.fill('99.99')
 
     // Guardar cambios
-    const guardarBtn = window.getByRole('button', { name: /guardar cambios/i }).first()
-    await guardarBtn.click()
+    await window.getByRole('button', { name: /guardar cambios/i }).click()
 
-    await window.waitForTimeout(2000)
+    // Esperar que el modal se cierre
+    await expect(window.getByRole('heading', { name: /editar producto/i })).toBeHidden({ timeout: 5_000 })
 
-    // Navegar a auditoría y verificar entrada PRICE_CHANGED
-    await window.getByText(/auditoría/i).first().click()
-    await expect(window.getByText(/precio cambiado/i).first()).toBeVisible({ timeout: 10_000 })
+    // Navegar a auditoría y verificar entrada PRICE_CHANGED en la tabla
+    await window.getByRole('button', { name: /auditoría/i }).click()
+    await expect(window.locator('tbody').getByText(/precio cambiado/i).first()).toBeVisible({ timeout: 10_000 })
 
     await cleanup()
   })

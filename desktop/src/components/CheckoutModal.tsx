@@ -146,8 +146,9 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm text-coffee-700 mb-1">Monto recibido</label>
+          <label htmlFor="checkout-amount-received" className="block text-sm text-coffee-700 mb-1">Monto recibido</label>
           <input
+            id="checkout-amount-received"
             type="text"
             inputMode="decimal"
             autoFocus
