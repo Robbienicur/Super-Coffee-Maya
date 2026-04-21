@@ -71,6 +71,13 @@ export default function POS() {
           showToast(`"${product.name}" sin existencias`, 'error')
           return
         }
+        if (product.track_stock) {
+          const inCart = useCartStore.getState().getItemQuantity(product.id)
+          if (inCart + 1 > product.stock) {
+            showToast(`Ya tienes el stock máximo de "${product.name}"`, 'error')
+            return
+          }
+        }
         addItem(product)
       } else {
         showToast(`Código "${barcode}" no encontrado — busca por nombre`, 'error')
@@ -83,11 +90,15 @@ export default function POS() {
   const modalOpen = showCheckout || showCancelSale
   useBarcode({ onScan: handleScan, enabled: !modalOpen })
 
-  const handleCheckoutComplete = (changeGiven: number) => {
+  const handleCheckoutComplete = (changeGiven: number, offline = false) => {
     clear()
     setShowCheckout(false)
     fetchProducts()
-    showToast(`Venta completada — Cambio: ${formatMXN(changeGiven)}`)
+    if (offline) {
+      showToast('Venta guardada (offline)', 'success')
+    } else {
+      showToast(`Venta completada — Cambio: ${formatMXN(changeGiven)}`)
+    }
   }
 
   if (loadingProducts) {
@@ -120,6 +131,13 @@ export default function POS() {
           products={products}
           onAddToCart={(product) => {
             if (product.track_stock && product.stock <= 0) return
+            if (product.track_stock) {
+              const inCart = useCartStore.getState().getItemQuantity(product.id)
+              if (inCart + 1 > product.stock) {
+                showToast(`Ya tienes el stock máximo de "${product.name}"`, 'error')
+                return
+              }
+            }
             addItem(product)
           }}
           searchInputRef={searchInputRef}

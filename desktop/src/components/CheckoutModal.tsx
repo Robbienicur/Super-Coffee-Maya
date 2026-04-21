@@ -5,14 +5,16 @@ import supabase from '../lib/supabaseClient'
 import { logAction } from '../lib/auditLogger'
 import { useAuthStore } from '../store/authStore'
 import { formatMXN } from '../utils/formatMXN'
-import { isNetworkError, makeTempId, queuePendingSale } from '../lib/offlineQueue'
+import { isNetworkError, makeClientSaleId, makeTempId, queuePendingSale } from '../lib/offlineQueue'
 
 interface CheckoutModalProps {
   items: CartItem[]
   total: number
   onClose: () => void
-  onComplete: (changeGiven: number) => void
+  onComplete: (changeGiven: number, offline?: boolean) => void
 }
+
+const AMOUNT_RE = /^\d+(\.\d{1,2})?$/
 
 export default function CheckoutModal({ items, total, onClose, onComplete }: CheckoutModalProps) {
   const [amountReceived, setAmountReceived] = useState('')
@@ -20,14 +22,20 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
   const [loading, setLoading] = useState(false)
   const profile = useAuthStore((s) => s.profile)
 
-  const amount = parseFloat(amountReceived) || 0
+  const trimmed = amountReceived.trim()
+  const amountValid = trimmed === '' || AMOUNT_RE.test(trimmed)
+  const amount = amountValid && trimmed !== '' ? parseFloat(trimmed) : 0
   const change = amount - total
-  const canConfirm = amount >= total && !loading
+  const canConfirm = amountValid && amount >= total && !loading
 
-  const queueOffline = () => {
-    if (!profile) return
-    queuePendingSale({
+  const queueOffline = async () => {
+    if (!profile) {
+      setLoading(false)
+      return
+    }
+    await queuePendingSale({
       tempId: makeTempId(),
+      client_sale_id: makeClientSaleId(),
       created_at_local: new Date().toISOString(),
       cashier_id: profile.id,
       cashier_email: profile.email,
@@ -42,7 +50,9 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
         subtotal: item.product.price * item.quantity,
       })),
     })
-    onComplete(change)
+    setLoading(false)
+    setError(null)
+    onComplete(change, true)
   }
 
   const handleConfirm = async () => {
@@ -50,9 +60,9 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
     setLoading(true)
     setError(null)
 
-    // Sin red: vamos directo a la cola. La cajera ve "venta completada" igual.
+    // Sin red: vamos directo a la cola. La cajera ve "venta guardada (offline)".
     if (!navigator.onLine) {
-      queueOffline()
+      await queueOffline()
       return
     }
 
@@ -74,7 +84,7 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
 
       if (saleError || !sale) {
         if (isNetworkError(saleError)) {
-          queueOffline()
+          await queueOffline()
           return
         }
         setError(saleError?.message ?? 'Error al crear la venta')
@@ -109,16 +119,21 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
         change_given: change,
       })
 
-      onComplete(change)
+      setLoading(false)
+      onComplete(change, false)
     } catch (err) {
       if (isNetworkError(err)) {
-        queueOffline()
+        await queueOffline()
         return
       }
       setError('Error inesperado al cobrar')
       setLoading(false)
     }
   }
+
+  const invalidAmountMsg = !amountValid
+    ? 'Monto inválido. Usa dígitos y hasta 2 decimales.'
+    : null
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fade-in_200ms_ease-out]">
@@ -133,21 +148,25 @@ export default function CheckoutModal({ items, total, onClose, onComplete }: Che
         <div className="mb-4">
           <label className="block text-sm text-coffee-700 mb-1">Monto recibido</label>
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
             autoFocus
-            step="0.01"
-            min="0"
             value={amountReceived}
             onChange={(e) => setAmountReceived(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && canConfirm) handleConfirm()
             }}
-            className="w-full px-4 py-3 rounded-lg bg-white border-2 border-coffee-200 text-xl text-center text-coffee-900 outline-none focus:border-coffee-500"
+            className={`w-full px-4 py-3 rounded-lg bg-white border-2 text-xl text-center text-coffee-900 outline-none focus:border-coffee-500 ${
+              amountValid ? 'border-coffee-200' : 'border-red-400'
+            }`}
             placeholder="$0.00"
           />
+          {invalidAmountMsg && (
+            <p className="mt-1 text-xs text-red-600">{invalidAmountMsg}</p>
+          )}
         </div>
 
-        {amount > 0 && (
+        {amountValid && amount > 0 && (
           <div className={`text-center mb-4 p-3 rounded-lg ${
             change >= 0 ? 'bg-green-50' : 'bg-red-50'
           }`}>
