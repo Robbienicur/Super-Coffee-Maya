@@ -58,7 +58,18 @@ export default function ProductTable({
                   {product.name}
                 </td>
                 <td className="px-4 py-3 text-coffee-500 font-mono text-xs">
-                  {product.barcode ?? '—'}
+                  {product.barcode ? (
+                    product.barcode
+                  ) : isAdmin && product.is_active ? (
+                    <button
+                      onClick={() => onEdit(product)}
+                      className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Agregar código de barras
+                    </button>
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className="px-4 py-3 text-coffee-700">{product.category}</td>
                 <td className="px-4 py-3 text-right text-coffee-900">
@@ -69,15 +80,24 @@ export default function ProductTable({
                 </td>
                 <td className="px-4 py-3 text-right">
                   {product.track_stock ? (
-                    <span
-                      className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        isLowStock
-                          ? 'bg-red-100 text-red-700'
-                          : 'text-coffee-900'
-                      }`}
-                    >
-                      {product.stock}
-                    </span>
+                    product.stock === 0 && product.is_active ? (
+                      <button
+                        onClick={() => onAdjustStock(product)}
+                        className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        Agregar stock
+                      </button>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          isLowStock
+                            ? 'bg-red-100 text-red-700'
+                            : 'text-coffee-900'
+                        }`}
+                      >
+                        {product.stock}
+                      </span>
+                    )
                   ) : (
                     <span className="text-coffee-300" title="Sin tracking de inventario">—</span>
                   )}

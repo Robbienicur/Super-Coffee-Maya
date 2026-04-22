@@ -9,6 +9,7 @@ import DeleteProductModal from '../components/inventory/DeleteProductModal'
 import CsvImportModal from '../components/inventory/CsvImportModal'
 import type { Product } from '../types/database'
 import { CATEGORIES } from '../utils/categories'
+import { normalizeSearch } from '../utils/normalizeSearch'
 
 export default function Inventory() {
   const profile = useAuthStore((s) => s.profile)
@@ -93,10 +94,10 @@ export default function Inventory() {
     }
 
     if (search.trim()) {
-      const term = search.trim().toLowerCase()
+      const term = normalizeSearch(search.trim())
       list = list.filter(
         (p) =>
-          p.name.toLowerCase().includes(term) ||
+          normalizeSearch(p.name).includes(term) ||
           (p.barcode ?? '').toLowerCase().includes(term)
       )
     }
