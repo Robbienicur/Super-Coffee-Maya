@@ -1,12 +1,13 @@
 export const PRODUCT_CATEGORIES = [
-  'Antojitos',
-  'Platillos',
-  'Licuados',
+  'Menú',
   'Bebidas',
-  'Snacks',
+  'Botanas',
+  'Dulces',
+  'Pan y Galletas',
   'Lácteos',
+  'Helados',
   'Abarrotes',
-  'Limpieza',
+  'Farmacia',
   'Otros',
 ] as const
 
