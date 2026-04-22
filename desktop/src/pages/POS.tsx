@@ -4,7 +4,7 @@ import { Wallet } from 'lucide-react'
 import supabase from '../lib/supabaseClient'
 import { useBarcode } from '../hooks/useBarcode'
 import { useCartStore } from '../store/cartStore'
-import { useSessionStore } from '../store/sessionStore'
+import { useSessionStore, isSessionStale } from '../store/sessionStore'
 import { useNavigationStore } from '../store/navigationStore'
 import ProductSearch from '../components/ProductSearch'
 import Cart from '../components/Cart'
@@ -16,6 +16,7 @@ import { getCachedProducts, setCachedProducts } from '../lib/offlineQueue'
 
 export default function POS() {
   const [products, setProducts] = useState<Product[]>([])
+  const [popularity, setPopularity] = useState<Map<string, number>>(new Map())
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [showCheckout, setShowCheckout] = useState(false)
   const [showCancelSale, setShowCancelSale] = useState(false)
@@ -45,15 +46,21 @@ export default function POS() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
+      const [{ data, error }, { data: topData }] = await Promise.all([
+        supabase.from('products').select('*').eq('is_active', true).order('name'),
+        supabase.rpc('top_selling_products', { window_days: 30 }),
+      ])
 
       if (!error && data) {
         setProducts(data)
         setCachedProducts(data)
+      }
+      if (topData) {
+        const map = new Map<string, number>()
+        for (const row of topData as { product_id: string; total_qty: number }[]) {
+          map.set(row.product_id, Number(row.total_qty))
+        }
+        setPopularity(map)
       }
     } catch {
       // offline: nos quedamos con el cache (si ya lo pintamos arriba).
@@ -70,16 +77,10 @@ export default function POS() {
     (barcode: string) => {
       const product = products.find((p) => p.barcode === barcode)
       if (product) {
+        // Se permite vender con stock 0 o negativo — puede que haya llegado
+        // mercancía sin registrar. Solo avisamos al cajero.
         if (product.track_stock && product.stock <= 0) {
-          showToast(`"${product.name}" sin existencias`, 'error')
-          return
-        }
-        if (product.track_stock) {
-          const inCart = useCartStore.getState().getItemQuantity(product.id)
-          if (inCart + 1 > product.stock) {
-            showToast(`Ya tienes el stock máximo de "${product.name}"`, 'error')
-            return
-          }
+          showToast(`⚠ "${product.name}" sin stock registrado — acuérdate de actualizar inventario`, 'error')
         }
         addItem(product)
       } else {
@@ -134,14 +135,10 @@ export default function POS() {
       <div className="flex-[3]">
         <ProductSearch
           products={products}
+          popularity={popularity}
           onAddToCart={(product) => {
-            if (product.track_stock && product.stock <= 0) return
-            if (product.track_stock) {
-              const inCart = useCartStore.getState().getItemQuantity(product.id)
-              if (inCart + 1 > product.stock) {
-                showToast(`Ya tienes el stock máximo de "${product.name}"`, 'error')
-                return
-              }
+            if (product.track_stock && product.stock <= 0) {
+              showToast(`⚠ "${product.name}" sin stock registrado — acuérdate de actualizar inventario`, 'error')
             }
             addItem(product)
           }}
@@ -185,21 +182,41 @@ function NoSessionBanner() {
   const session = useSessionStore((s) => s.session)
   const setPage = useNavigationStore((s) => s.setPage)
 
-  if (session) return null
-
-  return (
-    <div className="mb-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-3">
-      <Wallet size={18} className="text-amber-700 flex-shrink-0" />
-      <div className="flex-1 text-sm text-amber-900">
-        <span className="font-semibold">No hay caja abierta.</span>{' '}
-        Abre una sesión antes de cobrar.
+  if (!session) {
+    return (
+      <div className="mb-3 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 flex items-center gap-3">
+        <Wallet size={18} className="text-amber-700 flex-shrink-0" />
+        <div className="flex-1 text-sm text-amber-900">
+          <span className="font-semibold">No hay caja abierta.</span>{' '}
+          Abre una sesión antes de cobrar.
+        </div>
+        <button
+          onClick={() => setPage('cash-session')}
+          className="px-3 py-1.5 text-xs font-medium rounded-md bg-amber-700 text-white hover:bg-amber-800 transition-colors"
+        >
+          Abrir caja
+        </button>
       </div>
-      <button
-        onClick={() => setPage('cash-session')}
-        className="px-3 py-1.5 text-xs font-medium rounded-md bg-amber-700 text-white hover:bg-amber-800 transition-colors"
-      >
-        Abrir caja
-      </button>
-    </div>
-  )
+    )
+  }
+
+  if (isSessionStale(session)) {
+    return (
+      <div className="mb-3 px-4 py-3 rounded-lg bg-red-50 border border-red-300 flex items-center gap-3">
+        <Wallet size={18} className="text-red-700 flex-shrink-0" />
+        <div className="flex-1 text-sm text-red-900">
+          <span className="font-semibold">Tienes una caja abierta de ayer.</span>{' '}
+          Tienes que cerrarla (reporte Z) antes de seguir vendiendo.
+        </div>
+        <button
+          onClick={() => setPage('cash-session')}
+          className="px-3 py-1.5 text-xs font-medium rounded-md bg-red-700 text-white hover:bg-red-800 transition-colors"
+        >
+          Cerrar caja
+        </button>
+      </div>
+    )
+  }
+
+  return null
 }

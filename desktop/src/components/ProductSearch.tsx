@@ -2,14 +2,16 @@
 import { useState, useMemo } from 'react'
 import type { Product } from '../types/database'
 import { formatMXN } from '../utils/formatMXN'
+import { normalizeSearch } from '../utils/normalizeSearch'
 
 interface ProductSearchProps {
   products: Product[]
+  popularity?: Map<string, number>
   onAddToCart: (product: Product) => void
   searchInputRef: React.RefObject<HTMLInputElement | null>
 }
 
-export default function ProductSearch({ products, onAddToCart, searchInputRef }: ProductSearchProps) {
+export default function ProductSearch({ products, popularity, onAddToCart, searchInputRef }: ProductSearchProps) {
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
@@ -20,15 +22,27 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
 
   const filtered = useMemo(() => {
     let result = products
-    if (selectedCategory) {
+    const searching = search.trim().length > 0
+    // Si el cajero está buscando, ignoramos el filtro de categoría —
+    // la búsqueda va contra todo el catálogo.
+    if (selectedCategory && !searching) {
       result = result.filter((p) => p.category === selectedCategory)
     }
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter((p) => p.name.toLowerCase().includes(q))
+    if (searching) {
+      const q = normalizeSearch(search)
+      result = result.filter((p) => normalizeSearch(p.name).includes(q))
     }
-    return result
-  }, [products, selectedCategory, search])
+    // Orden: (1) con stock primero, (2) más vendidos arriba, (3) alfabético.
+    return [...result].sort((a, b) => {
+      const aOut = a.track_stock && a.stock <= 0 ? 1 : 0
+      const bOut = b.track_stock && b.stock <= 0 ? 1 : 0
+      if (aOut !== bOut) return aOut - bOut
+      const aPop = popularity?.get(a.id) ?? 0
+      const bPop = popularity?.get(b.id) ?? 0
+      if (aPop !== bPop) return bPop - aPop
+      return a.name.localeCompare(b.name, 'es')
+    })
+  }, [products, selectedCategory, search, popularity])
 
   return (
     <div className="flex flex-col h-full">
@@ -71,34 +85,46 @@ export default function ProductSearch({ products, onAddToCart, searchInputRef }:
         {filtered.map((product) => {
           const outOfStock = product.track_stock && product.stock <= 0
           const lowStock = product.track_stock && product.stock > 0 && product.stock <= product.min_stock
+          const popCount = popularity?.get(product.id) ?? 0
+          const isTopSeller = popCount >= 5 && !outOfStock
 
           return (
             <button
               key={product.id}
-              disabled={outOfStock}
               onClick={() => onAddToCart(product)}
-              className={`text-left p-3 rounded-xl border transition-all duration-150 ${
+              className={`text-left p-3 rounded-xl border transition-all duration-150 cursor-pointer ${
                 outOfStock
-                  ? 'bg-gray-50 border-gray-200 opacity-40 cursor-not-allowed'
-                  : 'bg-white border-coffee-100 shadow-sm hover:shadow-md hover:border-coffee-300 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer'
+                  ? 'bg-red-50 border-red-200 shadow-sm hover:shadow-md hover:border-red-400 hover:-translate-y-0.5 active:scale-[0.98]'
+                  : 'bg-white border-coffee-100 shadow-sm hover:shadow-md hover:border-coffee-300 hover:-translate-y-0.5 active:scale-[0.98]'
               }`}
             >
               <div className="flex items-start justify-between mb-1">
                 <span className="font-medium text-sm text-coffee-900 leading-tight">
                   {product.name}
                 </span>
-                {lowStock && (
-                  <span className="text-[10px] bg-warning text-white px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0">
-                    Bajo
-                  </span>
-                )}
+                <div className="flex gap-1 ml-1 flex-shrink-0">
+                  {isTopSeller && (
+                    <span className="text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded-full" title={`Vendido ${popCount} veces en 30 días`}>
+                      ★ Top
+                    </span>
+                  )}
+                  {lowStock && (
+                    <span className="text-[10px] bg-warning text-white px-1.5 py-0.5 rounded-full">
+                      Bajo
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="text-base font-bold text-coffee-900">
                 {formatMXN(product.price)}
               </div>
               {product.track_stock && (
-                <div className="text-xs text-coffee-300 mt-0.5">
-                  {outOfStock ? 'Sin existencias' : `${product.stock} disponibles`}
+                <div className={`text-xs mt-0.5 font-medium ${outOfStock ? 'text-red-600' : 'text-coffee-300'}`}>
+                  {outOfStock
+                    ? product.stock < 0
+                      ? `Stock ${product.stock} — actualiza inventario`
+                      : 'Sin piezas — vendible, actualiza inventario'
+                    : `${product.stock} disponibles`}
                 </div>
               )}
             </button>

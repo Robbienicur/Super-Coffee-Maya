@@ -96,7 +96,7 @@ describe('ProductSearch', () => {
     expect(screen.getByText('Bajo')).toBeInTheDocument()
   })
 
-  it('deshabilita productos sin existencias', () => {
+  it('productos sin existencias siguen siendo vendibles (no bloquea)', () => {
     const products = [
       makeProduct({ id: 'p1', name: 'Café Agotado', stock: 0 }),
     ]
@@ -108,7 +108,8 @@ describe('ProductSearch', () => {
       />
     )
     const btn = screen.getByRole('button', { name: /Café Agotado/i })
-    expect(btn).toBeDisabled()
+    expect(btn).not.toBeDisabled()
+    expect(screen.getByText(/Sin piezas|actualiza inventario/i)).toBeInTheDocument()
   })
 
   it('llama a onAddToCart al hacer click en un producto', () => {
