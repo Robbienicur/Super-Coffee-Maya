@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { ShoppingCart, Package, BarChart3, ClipboardList, Wallet, LogOut } from 'lucide-react'
+import { ShoppingCart, Package, BarChart3, ClipboardList, Wallet, LogOut, AlertTriangle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useSessionStore } from '../store/sessionStore'
 import { useNavigationStore, type Page } from '../store/navigationStore'
 import supabase from '../lib/supabaseClient'
+import { logAction } from '../lib/auditLogger'
 import OfflineStatus from './OfflineStatus'
 
 interface NavItem {
@@ -32,12 +33,37 @@ const pageLabels: Record<Page, string> = {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const profile = useAuthStore((s) => s.profile)
   const logout = useAuthStore((s) => s.logout)
   const currentPage = useNavigationStore((s) => s.currentPage)
   const setPage = useNavigationStore((s) => s.setPage)
   const session = useSessionStore((s) => s.session)
   const loadSession = useSessionStore((s) => s.loadForCashier)
+
+  const handleLogoutClick = () => {
+    if (session) {
+      setShowLogoutModal(true)
+    } else {
+      logout()
+    }
+  }
+
+  const confirmLogoutKeepSession = async () => {
+    if (profile) {
+      await logAction('LOGOUT_WITH_OPEN_SESSION', 'cash_session', session?.id, undefined, {
+        opening_float: session?.opening_float,
+        opened_at: session?.opened_at,
+      })
+    }
+    setShowLogoutModal(false)
+    await logout()
+  }
+
+  const goToCloseCaja = () => {
+    setShowLogoutModal(false)
+    setPage('cash-session')
+  }
 
   useEffect(() => {
     if (profile?.id) loadSession(profile.id)
@@ -129,7 +155,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         <div className="border-t border-coffee-700 px-2 py-3">
           <button
-            onClick={logout}
+            onClick={handleLogoutClick}
             className={`flex items-center gap-2.5 opacity-50 hover:opacity-100 transition-opacity w-full ${
               expanded ? 'px-3' : 'justify-center'
             }`}
@@ -141,6 +167,44 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </nav>
+
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fade-in_200ms_ease-out]">
+          <div className="bg-cream rounded-xl p-6 w-full max-w-md shadow-xl animate-[scale-in_200ms_ease-out]">
+            <div className="flex items-start gap-3 mb-3">
+              <AlertTriangle size={22} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-lg font-bold text-coffee-900">Tienes caja abierta</h2>
+                <p className="text-sm text-coffee-600 mt-1">
+                  Recomendamos cerrar la caja (reporte Z) antes de cerrar sesión.
+                  Si la dejas abierta y no la cierras el mismo día, al regresar
+                  <strong> tendrás que cerrarla antes de poder vender</strong>.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 mt-4">
+              <button
+                onClick={goToCloseCaja}
+                className="w-full py-2.5 rounded-lg bg-coffee-900 text-white font-semibold text-sm hover:bg-coffee-800 transition-colors"
+              >
+                Cerrar caja ahora (recomendado)
+              </button>
+              <button
+                onClick={confirmLogoutKeepSession}
+                className="w-full py-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-sm hover:bg-amber-100 transition-colors"
+              >
+                Cerrar sesión dejando la caja abierta
+              </button>
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="w-full py-2 text-xs text-coffee-500 hover:text-coffee-700"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-5 py-3 border-b border-coffee-200">

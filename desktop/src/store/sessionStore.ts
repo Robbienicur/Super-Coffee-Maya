@@ -1,6 +1,17 @@
 import { create } from 'zustand'
 import supabase from '../lib/supabaseClient'
 import type { CashSession, SessionExpectedCash } from '../types/database'
+import { getMexicoDateString } from '../utils/mexicoTime'
+
+// Una sesión se considera "obsoleta" cuando su fecha de apertura
+// (en timezone México) es anterior a la fecha de hoy. Caso típico:
+// la cajera apagó la compu sin cerrar caja y es un día nuevo.
+export function isSessionStale(session: CashSession | null): boolean {
+  if (!session) return false
+  const openedDay = getMexicoDateString(new Date(session.opened_at))
+  const todayDay = getMexicoDateString()
+  return openedDay < todayDay
+}
 
 interface SessionStore {
   session: CashSession | null

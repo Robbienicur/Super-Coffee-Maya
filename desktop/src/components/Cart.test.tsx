@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import Cart from './Cart'
 import { useCartStore } from '../store/cartStore'
-import type { Product } from '../types/database'
+import { useSessionStore } from '../store/sessionStore'
+import type { CashSession, Product } from '../types/database'
 
 const makeProduct = (overrides: Partial<Product> = {}): Product => ({
   id: 'prod-1',
@@ -25,10 +26,37 @@ describe('Cart', () => {
   let onCheckout: ReturnType<typeof vi.fn>
   let onCancelPastSale: ReturnType<typeof vi.fn>
 
+  const openSession: CashSession = {
+    id: 'session-1',
+    cashier_id: 'user-1',
+    status: 'open',
+    opened_at: new Date().toISOString(),
+    closed_at: null,
+    opening_float: 1000,
+    closing_counts: null,
+    closing_cash_counted: null,
+    closing_notes: '',
+    closed_by: null,
+    expected_cash: null,
+    cash_sales: null,
+    card_sales: null,
+    transfer_sales: null,
+    total_drops: null,
+    total_pickups: null,
+    total_expenses: null,
+    total_refunds: null,
+    sales_count: null,
+    difference: 0,
+    reopened_from_id: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+
   beforeEach(() => {
     onCheckout = vi.fn()
     onCancelPastSale = vi.fn()
     useCartStore.setState({ items: [] })
+    useSessionStore.setState({ session: openSession, expected: null, isLoading: false })
   })
 
   it('muestra mensaje de estado vacío', () => {

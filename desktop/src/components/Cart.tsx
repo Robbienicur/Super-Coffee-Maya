@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { ShoppingCart, X, Check } from 'lucide-react'
 import { useCartStore } from '../store/cartStore'
 import { useAuthStore } from '../store/authStore'
+import { useSessionStore, isSessionStale } from '../store/sessionStore'
+import { useNavigationStore } from '../store/navigationStore'
 import { logAction } from '../lib/auditLogger'
 import { formatMXN } from '../utils/formatMXN'
 
@@ -18,6 +20,10 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
   const clear = useCartStore((s) => s.clear)
   const total = useCartStore((s) => s.total)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const session = useSessionStore((s) => s.session)
+  const setPage = useNavigationStore((s) => s.setPage)
+  const stale = isSessionStale(session)
+  const canCharge = !!session && !stale
   const [confirmClear, setConfirmClear] = useState(false)
 
   const handleClear = () => {
@@ -120,8 +126,21 @@ export default function Cart({ onCheckout, onCancelPastSale }: CartProps) {
             Cancelar
           </button>
           <button
-            onClick={onCheckout}
-            disabled={items.length === 0}
+            onClick={() => {
+              if (!canCharge) {
+                setPage('cash-session')
+                return
+              }
+              onCheckout()
+            }}
+            disabled={items.length === 0 || !canCharge}
+            title={
+              !session
+                ? 'Abre caja antes de cobrar'
+                : stale
+                ? 'Tienes una caja abierta de ayer — ciérrala primero'
+                : undefined
+            }
             className="flex-1 py-3 rounded-lg bg-coffee-900 text-white font-semibold text-sm hover:bg-coffee-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.97] flex items-center justify-center gap-1.5"
           >
             <Check size={16} /> Cobrar

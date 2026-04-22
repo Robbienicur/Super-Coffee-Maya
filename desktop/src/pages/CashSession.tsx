@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../store/authStore'
-import { useSessionStore } from '../store/sessionStore'
+import { useSessionStore, isSessionStale } from '../store/sessionStore'
 import OpenSessionForm from '../components/cash/OpenSessionForm'
 import SessionDashboard from '../components/cash/SessionDashboard'
 import CloseSessionForm from '../components/cash/CloseSessionForm'
@@ -16,10 +16,16 @@ export default function CashSession() {
 
   const [view, setView] = useState<View>('auto')
   const [reportId, setReportId] = useState<string | null>(null)
+  const stale = isSessionStale(session)
 
   useEffect(() => {
     if (profile) loadForCashier(profile.id)
   }, [profile?.id, loadForCashier])
+
+  // Caja abierta de un día previo: forzar inmediatamente la pantalla de cierre.
+  useEffect(() => {
+    if (stale && view === 'auto') setView('closing')
+  }, [stale, view])
 
   if (isLoading) {
     return <div className="p-8 text-coffee-600">Cargando caja...</div>
