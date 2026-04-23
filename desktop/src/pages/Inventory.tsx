@@ -32,11 +32,21 @@ export default function Inventory() {
     formProduct !== undefined || stockProduct !== null || deleteProduct !== null || showCsvImport
 
   const fetchProducts = useCallback(async () => {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .order('is_active', { ascending: false })
-      .order('name', { ascending: true })
+    // Paginamos: PostgREST limita a 1000 filas por request.
+    const pageSize = 1000
+    const all: Product[] = []
+    for (let page = 0; ; page++) {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .order('is_active', { ascending: false })
+        .order('name', { ascending: true })
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+      if (!data || data.length === 0) break
+      all.push(...data)
+      if (data.length < pageSize) break
+    }
+    const data = all
 
     setProducts(data ?? [])
     setLoading(false)

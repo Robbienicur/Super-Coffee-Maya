@@ -46,14 +46,26 @@ export default function POS() {
     }
 
     try {
-      const [{ data, error }, { data: topData }] = await Promise.all([
-        supabase.from('products').select('*').eq('is_active', true).order('name'),
-        supabase.rpc('top_selling_products', { window_days: 30 }),
-      ])
+      // Paginamos: PostgREST limita a 1000 filas por request (max-rows config),
+      // y el inventario real tiene >1500 productos activos.
+      const pageSize = 1000
+      const all: Product[] = []
+      for (let page = 0; ; page++) {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('is_active', true)
+          .order('name')
+          .range(page * pageSize, (page + 1) * pageSize - 1)
+        if (error || !data || data.length === 0) break
+        all.push(...data)
+        if (data.length < pageSize) break
+      }
+      const { data: topData } = await supabase.rpc('top_selling_products', { window_days: 30 })
 
-      if (!error && data) {
-        setProducts(data)
-        setCachedProducts(data)
+      if (all.length > 0) {
+        setProducts(all)
+        setCachedProducts(all)
       }
       if (topData) {
         const map = new Map<string, number>()
