@@ -71,10 +71,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return { error: 'Credenciales incorrectas' }
     }
 
-    await window.electronAuth.saveSession({
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-    })
+    try {
+      await window.electronAuth.saveSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      await supabase.auth.signOut()
+      if (message.includes('SAFE_STORAGE_UNAVAILABLE')) {
+        return { error: 'No se puede guardar la sesión: cifrado del sistema no disponible. Contacta al administrador.' }
+      }
+      return { error: 'No se pudo guardar la sesión. Reinicia la app e intenta de nuevo.' }
+    }
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
