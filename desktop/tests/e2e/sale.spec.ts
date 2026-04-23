@@ -53,7 +53,7 @@ test.describe('Flujo de venta', () => {
 
     await expect(window.getByText(/Carrito \(1\)/i)).toBeVisible({ timeout: 10_000 })
 
-    const plusButton = window.locator('button:has-text("+")').first()
+    const plusButton = window.getByRole('button', { name: '+', exact: true }).first()
     await plusButton.click()
 
     const qtySpan = window.locator('span.text-center.font-medium').first()
@@ -70,14 +70,14 @@ test.describe('Flujo de venta', () => {
     await window.waitForTimeout(1500)
 
     // Ir a inventario y anotar stock actual de E2E00003
-    await window.getByRole('button', { name: /inventario/i }).click()
+    await window.getByRole('button', { name: 'Inventario', exact: true }).click()
     await expect(window.getByText(/Producto E2E Galletas/i)).toBeVisible({ timeout: 10_000 })
 
     const stockCell = window.locator('tr:has-text("E2E00003") td').nth(5)
     const stockBefore = await stockCell.textContent()
 
     // Volver a POS
-    await window.getByRole('button', { name: /punto de venta/i }).click()
+    await window.getByRole('button', { name: 'Punto de Venta', exact: true }).click()
     await window.waitForTimeout(1000)
 
     // Escanear producto E2E00003
@@ -99,7 +99,7 @@ test.describe('Flujo de venta', () => {
     await window.waitForTimeout(2000)
 
     // Verificar stock decrementado en inventario
-    await window.getByRole('button', { name: /inventario/i }).click()
+    await window.getByRole('button', { name: 'Inventario', exact: true }).click()
     await expect(window.getByText(/Producto E2E Galletas/i).first()).toBeVisible({ timeout: 10_000 })
 
     const stockAfter = await stockCell.textContent()

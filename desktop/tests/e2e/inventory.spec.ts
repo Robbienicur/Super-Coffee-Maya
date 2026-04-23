@@ -6,7 +6,7 @@ test.describe('Inventario (admin)', () => {
     const { window, cleanup } = await launchApp()
 
     await loginAs(window, 'admin')
-    await window.getByRole('button', { name: /inventario/i }).click()
+    await window.getByRole('button', { name: 'Inventario', exact: true }).click()
 
     await expect(window.getByText(/Producto E2E Café/i)).toBeVisible({ timeout: 10_000 })
     await expect(window.getByText(/Producto E2E Bebida/i)).toBeVisible()
@@ -18,7 +18,7 @@ test.describe('Inventario (admin)', () => {
     const { window, cleanup } = await launchApp()
 
     await loginAs(window, 'admin')
-    await window.getByRole('button', { name: /inventario/i }).click()
+    await window.getByRole('button', { name: 'Inventario', exact: true }).click()
 
     await expect(window.getByText(/Producto E2E Café/i)).toBeVisible({ timeout: 10_000 })
 
@@ -42,21 +42,22 @@ test.describe('Inventario (admin)', () => {
     await expect(window.getByRole('heading', { name: /editar producto/i })).toBeHidden({ timeout: 5_000 })
 
     // Navegar a auditoría y verificar entrada PRICE_CHANGED en la tabla
-    await window.getByRole('button', { name: /auditoría/i }).click()
+    await window.getByRole('button', { name: 'Auditoría', exact: true }).click()
     await expect(window.locator('tbody').getByText(/precio cambiado/i).first()).toBeVisible({ timeout: 10_000 })
 
     await cleanup()
   })
 
-  test('cajera no tiene acceso a inventario', async () => {
+  test('cajera no tiene acceso a auditoría', async () => {
+    // Cajera SÍ tiene acceso a inventario (puede reactualizar stock en piso),
+    // pero NO a la página de auditoría — eso es solo para admin.
     const { window, cleanup } = await launchApp()
 
     await loginAs(window, 'cashier')
     await window.waitForTimeout(1500)
 
-    const inventoryLink = window.getByText(/inventario/i).first()
-    const count = await inventoryLink.count()
-    expect(count).toBe(0)
+    const auditButton = window.getByRole('button', { name: 'Auditoría', exact: true })
+    await expect(auditButton).toHaveCount(0)
 
     await cleanup()
   })
